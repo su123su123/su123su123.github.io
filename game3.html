@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>糖果的天地 - 小游戏3</title>
+    <!-- 添加手势识别库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+        
+        body {
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        .candy {
+            position: absolute;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .basket {
+            position: absolute;
+            width: 150px;
+            height: 120px;
+            z-index: 3;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: background-image 0.3s ease;
+        }
+        
+        .basket-half-full {
+            content: url('game/game3/half_candy.png');
+        }
+        
+        .basket-full {
+            content: url('game/game3/full_candy.png');
+        }
+        
+        .score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 20;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+        
+        .message h2 {
+            margin-bottom: 20px;
+            color: #ff4081;
+        }
+        
+        .message p {
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        .message button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+        
+        .message button:hover {
+            background-color: #ff6699;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 10;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .progress-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 10;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #ff4081;
+            transition: width 0.3s ease;
+        }
+        
+        /* 添加摄像头视频容器样式 */
+        #video-container {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 160px;
+            height: 120px;
+            z-index: 15;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            opacity: 0.7;
+        }
+        
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 镜像显示 */
+        }
+
+        /* 手势控制开关按钮 */
+        .gesture-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 180px;
+            background-color: rgba(255, 64, 129, 0.8);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 15;
+            cursor: pointer;
+        }
+        
+        .gesture-toggle.active {
+            background-color: rgba(76, 175, 80, 0.8);
+        }
+        
+        /* 摄像头提示信息 */
+        .camera-hint {
+            position: absolute;
+            bottom: 140px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 15;
+            width: 160px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <img src="game/game3/bg3.png" alt="糖果世界背景" class="background">
+        
+        <!-- 篮子（鼠标指针） -->
+        <img src="game/game3/basket.png" alt="篮子" class="basket" id="basket">
+        
+        <!-- 分数显示 -->
+        <div class="score" id="score">得分: 0 / 26</div>
+        
+        <!-- 进度条 -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <!-- 成功/失败消息 -->
+        <div class="message" id="success-message">
+            <h2>恭喜你成功了！</h2>
+            <p>你已经收集了足够的糖果，成为了糖果世界的英雄！</p>
+            <button id="play-again-btn">再玩一次</button>
+            <button id="return-btn">返回首页</button>
+        </div>
+        
+        <!-- 返回按钮 -->
+        <div class="back-button" id="back-button">返回</div>
+        
+        <!-- 添加摄像头视频容器 -->
+        <div id="video-container">
+            <video id="webcam" autoplay playsinline></video>
+        </div>
+        
+        <!-- 手势控制开关 -->
+        <button class="gesture-toggle" id="gesture-toggle">开启手势控制</button>
+        
+        <!-- 摄像头提示 -->
+        <div class="camera-hint" id="camera-hint">请允许访问摄像头<br>使用手掌移动控制篮子</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 游戏元素
+            const gameContainer = document.querySelector('.game-container');
+            const basket = document.getElementById('basket');
+            const scoreDisplay = document.getElementById('score');
+            const progressBar = document.getElementById('progress-bar');
+            const successMessage = document.getElementById('success-message');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const returnBtn = document.getElementById('return-btn');
+            const backButton = document.getElementById('back-button');
+            
+            // 音频元素
+            const bgMusic = new Audio('game/game3/bg3.mp3');
+            bgMusic.loop = true;
+            bgMusic.volume = 0.5;
+            
+            const getCandySound = new Audio('game/game3/get_candy_and_click.mp3');
+            const missSound = new Audio('game/game3/dont_get_candy.MP3');
+            
+            // 预加载音频
+            function preloadAudio(audio) {
+                audio.load();
+                console.log(`尝试预加载音频: ${audio.src}`);
+            }
+            
+            preloadAudio(bgMusic);
+            preloadAudio(getCandySound);
+            preloadAudio(missSound);
+            
+            // 添加音频播放函数
+            function playSound(sound, volume = 1.0) {
+                try {
+                    // 创建新的Audio实例避免重叠问题
+                    const audioClone = new Audio(sound.src);
+                    audioClone.volume = volume;
+                    
+                    console.log(`尝试播放音效: ${sound.src}`);
+                    const playPromise = audioClone.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log(`音效播放成功: ${sound.src}`);
+                        }).catch(error => {
+                            console.error(`音效播放失败: ${sound.src}`, error);
+                        });
+                    }
+                } catch (e) {
+                    console.error('播放音频时出错:', e);
+                }
+            }
+            
+            // 启动背景音乐
+            function startBackgroundMusic() {
+                const playPromise = bgMusic.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('背景音乐播放成功');
+                    }).catch(e => {
+                        console.log('背景音乐自动播放被阻止:', e);
+                        // 添加用户交互时播放音乐的逻辑
+                        document.addEventListener('click', function playBgMusic() {
+                            bgMusic.play().catch(err => console.log('尝试播放背景音乐失败:', err));
+                            document.removeEventListener('click', playBgMusic);
+                        }, { once: true });
+                    });
+                }
+            }
+            
+            // 尝试启动背景音乐
+            startBackgroundMusic();
+            
+            // 添加音频调试按钮
+            const audioDebugButton = document.createElement('button');
+            audioDebugButton.textContent = '测试音效';
+            audioDebugButton.style.position = 'absolute';
+            audioDebugButton.style.bottom = '60px';
+            audioDebugButton.style.right = '20px';
+            audioDebugButton.style.zIndex = '999';
+            audioDebugButton.style.padding = '10px';
+            audioDebugButton.style.cursor = 'pointer';
+            audioDebugButton.onclick = function() {
+                playSound(getCandySound);
+                setTimeout(() => playSound(missSound), 1000);
+                setTimeout(() => {
+                    bgMusic.currentTime = 0;
+                    bgMusic.play().catch(e => console.log('点击后仍无法播放背景音乐:', e));
+                }, 2000);
+            };
+            document.body.appendChild(audioDebugButton);
+            
+            // 游戏变量
+            let score = 0;
+            let requiredScore = 26;
+            let candiesCreated = 0;
+            let gameActive = true;
+            const candyDropSpeed = 3; // 每秒生成的糖果数
+            
+            // 更新鼠标样式函数
+            function updateBasketAppearance() {
+                if (score >= 40) {
+                    basket.classList.add('basket-full');
+                    basket.classList.remove('basket-half-full');
+                } else if (score >= 20) {
+                    basket.classList.add('basket-half-full');
+                    basket.classList.remove('basket-full');
+                } else {
+                    basket.classList.remove('basket-half-full');
+                    basket.classList.remove('basket-full');
+                }
+            }
+            
+            // 鼠标移动控制篮子位置
+            document.addEventListener('mousemove', function(e) {
+                if (gameActive) {
+                    basket.style.left = e.clientX + 'px';
+                    basket.style.top = e.clientY + 'px';
+                }
+            });
+            
+            // 糖果碰撞检测
+            function isColliding(candy, basket) {
+                const candyRect = candy.getBoundingClientRect();
+                const basketRect = basket.getBoundingClientRect();
+                
+                // 简单的矩形碰撞检测
+                return !(
+                    candyRect.right < basketRect.left || 
+                    candyRect.left > basketRect.right || 
+                    candyRect.bottom < basketRect.top || 
+                    candyRect.top > basketRect.bottom
+                );
+            }
+            
+            // 生成随机糖果
+            function createCandy() {
+                if (!gameActive) return;
+                
+                candiesCreated++;
+                
+                // 随机选择糖果图片
+                const candyNumber = Math.floor(Math.random() * 52) + 1;
+                const candyImg = document.createElement('img');
+                candyImg.src = `game/game3/candy${candyNumber}.png`;
+                candyImg.alt = '糖果';
+                candyImg.className = 'candy';
+                
+                // 随机位置（只在X轴随机）
+                const candySize = 50 + Math.random() * 30; // 大小随机 50-80px
+                candyImg.style.width = `${candySize}px`;
+                candyImg.style.height = `${candySize}px`;
+                candyImg.style.left = `${Math.random() * 90 + 5}%`; // 水平位置随机 5%-95%
+                candyImg.style.top = `-${candySize}px`; // 从顶部开始
+                
+                // 添加到游戏容器
+                gameContainer.appendChild(candyImg);
+                
+                // 下落动画
+                let posY = -candySize;
+                const fallSpeed = 2 + Math.random() * 3; // 速度随机 2-5 像素/帧
+                const rotationSpeed = Math.random() * 2 - 1; // 旋转速度随机 -1 到 1 度/帧
+                let rotation = 0;
+                
+                function fall() {
+                    if (!gameContainer.contains(candyImg)) return;
+                    
+                    posY += fallSpeed;
+                    rotation += rotationSpeed;
+                    candyImg.style.top = `${posY}px`;
+                    candyImg.style.transform = `rotate(${rotation}deg)`;
+                    
+                    // 碰撞检测
+                    if (isColliding(candyImg, basket)) {
+                        // 播放收集音效
+                        playSound(getCandySound, 1.0);
+                        
+                        // 增加得分
+                        score++;
+                        scoreDisplay.textContent = `得分: ${score} / ${requiredScore}`;
+                        updateProgressBar();
+                        updateBasketAppearance();
+                        
+                        // 移除糖果
+                        gameContainer.removeChild(candyImg);
+                        
+                        // 检查是否达成目标
+                        if (score >= requiredScore && gameActive) {
+                            gameWon();
+                        }
+                        
+                        return;
+                    }
+                    
+                    // 检查是否落到底部
+                    if (posY > window.innerHeight) {
+                        // 播放失败音效
+                        playSound(missSound, 1.0);
+                        
+                        gameContainer.removeChild(candyImg);
+                        return;
+                    }
+                    
+                    // 继续下落
+                    if (gameActive) {
+                        requestAnimationFrame(fall);
+                    }
+                }
+                
+                // 开始下落
+                fall();
+                
+                // 调整进度条以显示游戏进度
+                updateProgressBar();
+            }
+            
+            // 持续生成糖果，不再有总数限制
+            const candyInterval = setInterval(function() {
+                if (gameActive) {
+                    createCandy();
+                }
+            }, 1000 / candyDropSpeed);
+            
+            // 更新进度条
+            function updateProgressBar() {
+                const progress = (Math.min(score, requiredScore) / requiredScore) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // 游戏胜利
+            function gameWon() {
+                // 显示成功消息
+                successMessage.style.display = 'block';
+                successMessage.querySelector('h2').textContent = '恭喜你成功了！';
+                successMessage.querySelector('p').textContent = `你已收集了${score}个糖果，成为了糖果世界的英雄！`;
+                
+                // 3秒后自动关闭页面
+                setTimeout(() => {
+                    window.close();
+                }, 3000);
+            }
+            
+            // 再玩一次
+            playAgainBtn.addEventListener('click', function() {
+                location.reload();
+            });
+            
+            // 返回首页按钮改为关闭页面
+            returnBtn.addEventListener('click', function() {
+                window.close();
+            });
+            
+            // 返回按钮
+            backButton.addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+            
+            // 手势控制相关变量
+            let handposeModel = null;
+            let gestureControlEnabled = false;
+            let video = document.getElementById('webcam');
+            let toggleButton = document.getElementById('gesture-toggle');
+            let cameraHint = document.getElementById('camera-hint');
+            let videoContainer = document.getElementById('video-container');
+            
+            // 初始化隐藏视频容器和提示
+            videoContainer.style.display = 'none';
+            cameraHint.style.display = 'none';
+            
+            // 加载手势识别模型
+            async function loadHandposeModel() {
+                try {
+                    handposeModel = await handpose.load();
+                    console.log("Handpose模型加载成功");
+                    
+                    // 模型加载成功后显示开关按钮
+                    toggleButton.style.display = 'block';
+                } catch (error) {
+                    console.error("Handpose模型加载失败:", error);
+                    toggleButton.textContent = "手势控制不可用";
+                    toggleButton.disabled = true;
+                }
+            }
+            
+            // 启动摄像头
+            async function setupCamera() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("您的浏览器不支持摄像头功能，请使用现代浏览器如Chrome或Firefox");
+                    return false;
+                }
+                
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 320, height: 240 }
+                    });
+                    video.srcObject = stream;
+                    
+                    return new Promise((resolve) => {
+                        video.onloadedmetadata = () => {
+                            resolve(true);
+                        };
+                    });
+                } catch (error) {
+                    console.error("摄像头访问失败:", error);
+                    alert("无法访问摄像头，请确保已授予权限");
+                    return false;
+                }
+            }
+            
+            // 手势检测循环
+            async function detectHandPose() {
+                if (!handposeModel || !gestureControlEnabled) return;
+                
+                try {
+                    const hands = await handposeModel.estimateHands(video);
+                    
+                    if (hands.length > 0) {
+                        // 获取食指指尖位置（手部关键点索引8）
+                        const fingerPosition = hands[0].landmarks[8];
+                        
+                        // 将手指在视频中的位置映射到游戏屏幕
+                        const videoRect = video.getBoundingClientRect();
+                        const gameContainerRect = gameContainer.getBoundingClientRect();
+                        
+                        // 计算手指在视频中的相对位置（0-1范围）
+                        const relativeX = (fingerPosition[0] - videoRect.width/2) / videoRect.width * 2;
+                        const relativeY = (fingerPosition[1] - videoRect.height/2) / videoRect.height * 2;
+                        
+                        // 将相对位置映射到游戏屏幕，加上偏移量让控制更自然
+                        const targetX = gameContainerRect.width / 2 + relativeX * gameContainerRect.width / 2;
+                        const targetY = gameContainerRect.height / 2 + relativeY * gameContainerRect.height / 2;
+                        
+                        // 更新篮子位置
+                        basket.style.left = `${targetX}px`;
+                        basket.style.top = `${targetY}px`;
+                    }
+                } catch (error) {
+                    console.error("手势检测错误:", error);
+                }
+                
+                // 持续检测
+                requestAnimationFrame(detectHandPose);
+            }
+            
+            // 切换手势控制状态
+            toggleButton.addEventListener('click', async function() {
+                if (!gestureControlEnabled) {
+                    // 启用手势控制
+                    const cameraReady = await setupCamera();
+                    
+                    if (cameraReady) {
+                        if (!handposeModel) {
+                            toggleButton.textContent = "加载中...";
+                            toggleButton.disabled = true;
+                            await loadHandposeModel();
+                            toggleButton.disabled = false;
+                        }
+                        
+                        videoContainer.style.display = 'block';
+                        cameraHint.style.display = 'block';
+                        
+                        toggleButton.textContent = "关闭手势控制";
+                        toggleButton.classList.add('active');
+                        
+                        gestureControlEnabled = true;
+                        
+                        // 修改提示信息
+                        cameraHint.textContent = "移动手掌来控制篮子";
+                        
+                        // 开始手势检测
+                        detectHandPose();
+                    }
+                } else {
+                    // 禁用手势控制
+                    videoContainer.style.display = 'none';
+                    cameraHint.style.display = 'none';
+                    
+                    toggleButton.textContent = "开启手势控制";
+                    toggleButton.classList.remove('active');
+                    
+                    gestureControlEnabled = false;
+                }
+            });
+            
+            // 鼠标移动事件，仅在非手势模式下响应
+            document.addEventListener('mousemove', function(e) {
+                if (!gestureControlEnabled) {
+                    basket.style.left = `${e.clientX}px`;
+                    basket.style.top = `${e.clientY}px`;
+                }
+            });
+
+            // 预加载手势识别模型
+            loadHandposeModel();
+        });
+    </script>
+</body>
+</html> 

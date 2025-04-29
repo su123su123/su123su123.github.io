@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小女孩的房间 - 小游戏1</title>
+    <style>
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            background-color: #000; /* 设置黑色背景防止白边 */
+        }
+        
+        .game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: url('game/game1/bg1.png') no-repeat center center;
+            background-size: cover;
+            transition: background-image 1.5s ease;
+            overflow: hidden; /* 防止内容溢出 */
+        }
+        
+        .interactive-item {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.8s ease;
+        }
+        
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            font-size: 24px;
+            opacity: 0;
+            transition: opacity 1s ease;
+            z-index: 100;
+            text-align: center;
+        }
+        
+        .success-message.show {
+            opacity: 1;
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 10;
+            transition: background-color 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .progress-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 10;
+        }
+        
+        .task-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 20px;
+            z-index: 10;
+            text-align: center;
+            max-width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <!-- 交互元素将通过JS添加 -->
+    </div>
+    
+    <button class="back-button" id="backButton">返回主页</button>
+    
+    <div class="progress-container">
+        已完成：<span id="completedItems">0</span>/4
+    </div>
+    
+    <div class="success-message" id="successMessage">
+        太棒了！你已经完成了所有任务！<br>
+        3秒后将返回主页...
+    </div>
+    
+    <div class="task-hint" id="taskHint">
+        请关闭桌上的台灯，让房间变暗
+    </div>
+
+    <!-- 添加音频元素 -->
+    <audio id="book-sound" src="game/game1/book_close.wav"></audio>
+    <audio id="curtain-sound" src="game/game1/curtain_close.wav"></audio>
+    <audio id="lamp-sound" src="game/game1/lamp_close.wav"></audio>
+    <audio id="background-music" src="game/game1/bg1.mp3" loop></audio>
+
+    <button id="playMusicButton">播放背景音乐</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backgroundMusic = document.getElementById('background-music');
+            backgroundMusic.volume = 0.5; // 设置音量（可选）
+
+            let hasInteracted = false;
+            let musicPlaying = false;
+
+            // 尝试自动播放
+            function tryPlayMusic() {
+                if (musicPlaying) return; // 如果已经在播放，则不再尝试
+                backgroundMusic.play().then(() => {
+                    console.log('背景音乐播放成功');
+                    musicPlaying = true;
+                    // 移除交互监听器，避免重复触发
+                    document.removeEventListener('click', handleInteraction);
+                    document.removeEventListener('keydown', handleInteraction);
+                    document.removeEventListener('touchstart', handleInteraction);
+                }).catch(error => {
+                    console.log('背景音乐自动播放失败，等待用户交互。');
+                    // 如果自动播放失败，并且用户还没有交互过，则添加交互监听器
+                    if (!hasInteracted) {
+                        document.addEventListener('click', handleInteraction, { once: true });
+                        document.addEventListener('keydown', handleInteraction, { once: true });
+                        document.addEventListener('touchstart', handleInteraction, { once: true });
+                    }
+                });
+            }
+
+            // 处理用户交互事件
+            function handleInteraction() {
+                if (hasInteracted) return;
+                console.log('用户已交互，尝试播放背景音乐。');
+                hasInteracted = true;
+                tryPlayMusic(); // 再次尝试播放音乐
+            }
+            
+            // 页面加载后首次尝试播放
+            tryPlayMusic();
+
+            // 移除测试用的播放按钮（如果不再需要）
+            const playMusicButton = document.getElementById('playMusicButton');
+            if (playMusicButton) {
+                playMusicButton.style.display = 'none'; // 隐藏按钮
+            }
+
+            const gameContainer = document.querySelector('.game-container');
+            const backButton = document.getElementById('backButton');
+            const completedItemsSpan = document.getElementById('completedItems');
+            const successMessage = document.getElementById('successMessage');
+            const taskHint = document.getElementById('taskHint');
+            
+            // 获取音频元素
+            const bookSound = document.getElementById('book-sound');
+            const curtainSound = document.getElementById('curtain-sound');
+            const lampSound = document.getElementById('lamp-sound');
+            
+            // 获取游戏容器尺寸用于定位
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+            
+            // 任务提示文本
+            const hintTexts = [
+                "请关闭桌上的台灯，让房间变暗",
+                "请关闭床头的小灯顶部按钮，让女孩回到梦乡",
+                "请合上床上的书，结束阅读",
+                "请关上窗帘，让房间不再明亮"
+            ];
+            
+            // 当前任务索引
+            let currentTaskIndex = 0;
+            
+            // 区域定义 - 每个区域定义为屏幕百分比
+            const clickAreas = [
+                {
+                    id: 'lamp',
+                    area: {
+                        xMin: 0.5, // 50% 左边界
+                        xMax: 0.7, // 70% 右边界
+                        yMin: 0.15, // 15% 上边界
+                        yMax: 0.4  // 40% 下边界
+                    },
+                    closedImg: 'game/game1/lamp_close.png',
+                    sound: lampSound,
+                    completed: false,
+                    width: '100%',
+                    height: '100%'
+                },
+                {
+                    id: 'littleLamp',
+                    area: {
+                        xMin: 0.4, // 40% 左边界
+                        xMax: 0.5, // 50% 右边界
+                        yMin: 0.42, // 42% 上边界
+                        yMax: 0.54  // 55% 下边界
+                    },
+                    closedImg: 'game/game1/little_lamp_close.png',
+                    sound: lampSound,
+                    completed: false,
+                    width: '100%',
+                    height: '100%'
+                },
+                {
+                    id: 'book',
+                    area: {
+                        xMin: 0.35, // 书的点击区域
+                        xMax: 0.6,
+                        yMin: 0.6,
+                        yMax: 0.9
+                    },
+                    openImg: 'game/game1/book_open.png',
+                    closedImg: 'game/game1/book_close.png',
+                    sound: bookSound,
+                    completed: false,
+                    width: '100%',
+                    height: '100%'
+                },
+                {
+                    id: 'curtain',
+                    area: {
+                        xMin: 0.3, // 30% 左边界
+                        xMax: 0.5, // 50% 右边界
+                        yMin: 0.0, // 0% 上边界
+                        yMax: 0.40  // 50% 下边界
+                    },
+                    closedImg: 'game/game1/curtain_close.png',
+                    sound: curtainSound,
+                    completed: false,
+                    width: '100%',
+                    height: '100%'
+                }
+            ];
+            
+            // 游戏项目元素 - 实际显示的图像元素
+            const gameItems = [];
+            
+            // 添加点击区域的可视化标记
+            function createClickAreaIndicator(area) {
+                const indicator = document.createElement('div');
+                indicator.style.position = 'absolute';
+                indicator.style.border = '2px solid red';
+                indicator.style.left = (area.xMin * 100) + '%';
+                indicator.style.top = (area.yMin * 100) + '%';
+                indicator.style.width = ((area.xMax - area.xMin) * 100) + '%';
+                indicator.style.height = ((area.yMax - area.yMin) * 100) + '%';
+                indicator.style.boxSizing = 'border-box';
+                indicator.style.zIndex = '10';
+                indicator.style.pointerEvents = 'none'; // 防止干扰点击事件
+                gameContainer.appendChild(indicator);
+            }
+            
+            // 创建所有交互元素的点击区域标示
+            //clickAreas.forEach(area => {
+            //    createClickAreaIndicator(area.area);
+            //});
+
+            // 计算完成的项目数量
+            function updateCompletedItems() {
+                const completedCount = clickAreas.filter(area => area.completed).length;
+                completedItemsSpan.textContent = completedCount;
+                
+                // 更新任务提示
+                if (completedCount < clickAreas.length) {
+                    currentTaskIndex = completedCount;
+                    taskHint.textContent = hintTexts[currentTaskIndex];
+                }
+                
+                // 检查是否已全部完成
+                if (completedCount === clickAreas.length) {
+                    // 更改背景图为最终场景(现在是黑暗场景)
+                    setTimeout(() => {
+                        gameContainer.style.backgroundImage = "url('game/game1/bg1.png')";
+                        // 显示成功消息
+                        successMessage.classList.add('show');
+                        // 隐藏任务提示
+                        taskHint.style.opacity = '0';
+                        
+                        // 3秒后返回主页
+                        setTimeout(() => {
+                            window.close();
+                        }, 3000);
+                    }, 800);
+                }
+            }
+            
+            // 创建书的初始状态显示
+            const bookElement = document.createElement('img');
+            bookElement.id = 'book-display';
+            bookElement.src = clickAreas.find(area => area.id === 'book').openImg;
+            bookElement.alt = '打开的书';
+            bookElement.style.position = 'absolute';
+            bookElement.style.top = '30%';
+            bookElement.style.left = '50%';
+            bookElement.style.transform = 'translate(-50%, -50%)';
+            bookElement.style.marginTop = '10%';
+            bookElement.style.width = '100%';
+            bookElement.style.zIndex = '1';
+            bookElement.style.pointerEvents = 'none'; // 防止图像干扰点击区域
+            gameContainer.appendChild(bookElement);
+            gameItems.push(bookElement);
+            
+            // 处理点击事件
+            gameContainer.addEventListener('click', function(event) {
+                // 计算点击位置相对于游戏容器的百分比
+                const bounds = gameContainer.getBoundingClientRect();
+                const xPercent = (event.clientX - bounds.left) / bounds.width;
+                const yPercent = (event.clientY - bounds.top) / bounds.height;
+                
+                console.log(`Clicked at: (${xPercent}, ${yPercent})`);
+                
+                // 检查点击是否在任何区域内
+                clickAreas.forEach(area => {
+                    if (area.completed) return; // 已完成的区域不再处理
+                    
+                    // 检查点击是否在当前区域
+                    if (xPercent >= area.area.xMin && xPercent <= area.area.xMax &&
+                        yPercent >= area.area.yMin && yPercent <= area.area.yMax) {
+                        
+                        // 播放音效
+                        if (area.sound) {
+                            area.sound.currentTime = 0;
+                            area.sound.play();
+                        }
+                        
+                        // 如果是书，则更新已存在的图像
+                        if (area.id === 'book') {
+                            bookElement.src = area.closedImg;
+                        } else {
+                            // 为其他区域创建图像
+                            const newElement = document.createElement('img');
+                            newElement.id = area.id + '-display';
+                            newElement.src = area.closedImg;
+                            newElement.alt = '关闭的' + area.id;
+                            newElement.style.position = 'absolute';
+                            
+                            // 根据不同元素设置不同的位置和大小
+                            if (area.id === 'lamp') {
+                                newElement.style.width = '100%';
+                                newElement.style.top = '50%';
+                                newElement.style.left = '50%';
+                            } else if (area.id === 'littleLamp') {
+                                newElement.style.width = '100%';
+                                newElement.style.top = '63.5%';
+                                newElement.style.left = '44.5%';
+                            } else if (area.id === 'curtain') {
+                                newElement.style.width = '100%';
+                                newElement.style.top = '51%';
+                                newElement.style.left = '50%';
+                            }
+                            
+                            newElement.style.transform = 'translate(-50%, -50%)';
+                            newElement.style.zIndex = '2';
+                            newElement.style.opacity = '0';
+                            newElement.style.transition = 'opacity 0.8s ease';
+                            newElement.style.pointerEvents = 'none'; // 防止图像干扰点击区域
+                            
+                            // 添加到游戏容器
+                            gameContainer.appendChild(newElement);
+                            gameItems.push(newElement);
+                            
+                            // 淡入显示关闭状态
+                            setTimeout(() => {
+                                newElement.style.opacity = '1';
+                            }, 50); // 小延迟确保过渡效果生效
+                        }
+                        
+                        // 标记为已完成
+                        area.completed = true;
+                        
+                        // 更新完成数量
+                        updateCompletedItems();
+                    }
+                });
+            });
+            
+            // 设置初始背景为明亮场景，使用CSS背景
+           // gameContainer.style.backgroundImage = "url('game/game1/bg1_final.png')";
+            
+            // 返回按钮点击事件
+            backButton.addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+        });
+    </script>
+</body>
+</html> 

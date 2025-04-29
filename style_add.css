@@ -1,0 +1,769 @@
+/* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth; /* 平滑滚动效果 */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    height: 100vh; /* Full viewport height */
+    overflow-x: hidden; /* 允许垂直滚动，但禁止水平滚动 */
+    position: relative; /* Needed for absolute positioning of children */
+}
+
+/* 页面滚动容器 */
+.page-scroll-container {
+    width: 100%;
+    height: auto; /* 自适应高度，允许滚动 */
+}
+
+/* 每个页面的基本样式 */
+.page {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 第一页样式 */
+#first-page {
+    background-image: url('images/first_page/first_page_black.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-image 5s ease;
+}
+
+/* 当背景图变化时的样式 */
+#first-page.colored {
+    background-image: url('images/first_page/first_page_color.jpg');
+}
+
+/* 按钮居中容器 */
+.centered-button {
+    position: absolute;
+    /* 根据红框位置调整，可能需要根据实际情况调整 */
+    top: 65%;
+    right: 10%;
+    transition: opacity 2s ease;
+}
+
+/* 开启梦旅按钮样式 */
+.dream-journey-btn {
+    padding: 15px 40px;
+    font-size: 20px;
+    border: none;
+    border-radius: 50px;
+    background-color: rgba(255, 192, 203, 0.3); /* 粉色半透明 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dream-journey-btn:hover {
+    background-color: rgba(255, 192, 203, 0.5); /* 悬停时背景更不透明 */
+}
+
+/* 按钮淡出效果 */
+.centered-button.fade-out {
+    opacity: 0;
+    pointer-events: none; /* 防止与已经淡出的按钮交互 */
+}
+
+/* 新插入的第二页样式 */
+
+
+/* 原第二页（现在是第三页）的样式 */
+/* 选择器更新为 #third-page .page-container 如果需要特定样式 */
+.page-container {
+    width: 100%;
+    height: 100%;
+    background-image: url('images/2.png'); /* Your background image */
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: relative; /* Context for absolute positioning */
+    display: flex;
+    flex-direction: column; /* Stack header and main */
+}
+
+/* Header Styles */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+    border-bottom: 1px solid #eee;
+    position: fixed; /* 固定在顶部 */
+    top: 0; /* 顶部位置 */
+    width: 100%; /* 确保宽度为100% */
+    z-index: 100; /* 确保在其他内容之上 */
+}
+
+.logo svg {
+    color: #555;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 25px; /* Spacing between nav items */
+}
+
+nav ul li {
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+    transition: color 0.2s ease;
+    position: relative; /* Needed for hover panel positioning */
+}
+
+nav ul li:hover {
+    color: #000;
+}
+
+.auth-buttons .btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.auth-buttons .sign-in {
+    background-color: #f0f0f0;
+    color: #333;
+}
+.auth-buttons .sign-in:hover {
+    background-color: #e0e0e0;
+}
+
+.auth-buttons .register {
+    background-color: #333;
+    color: #fff;
+}
+.auth-buttons .register:hover {
+    background-color: #555;
+}
+
+/* Main Content & Search Bar */
+main {
+    flex-grow: 1; /* Takes remaining vertical space */
+    display: flex;
+    flex-direction: column; /* Stack search and results vertically */
+    justify-content: center;
+    align-items: center;
+    position: relative; /* Context for search bar & results */
+    z-index: 10; /* Above bubbles but below header */
+    padding-bottom: 50px; /* Add some space at the bottom */
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    /* --- 修改开始 --- */
+    /* 设置半透明的背景色 */
+    background-color: rgba(255, 255, 255, 0.2); /* 半透明白色背景 */
+    /* 应用背景模糊效果 */
+    backdrop-filter: blur(12px); /* 毛玻璃模糊程度，可调整数值 */
+    -webkit-backdrop-filter: blur(12px); /* 兼容 Safari 浏览器 */
+    /* 添加一个细微的边框增加玻璃质感（可选） */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    /* --- 修改结束 --- */
+    padding: 15px 25px; /* 修改：统一垂直内边距 */
+    border-radius: 50px; /* 圆角保持不变 */
+    width: 60%; /* 宽度保持不变 */
+    max-width: 500px; /* 最大宽度保持不变 */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 阴影保持不变 */
+    transition: transform 0.4s ease-in-out; /* Add transition for movement */
+    margin-bottom: 20px; /* Add initial margin below search */
+}
+
+/* Class to shift search container up */
+.search-container-shifted {
+    transform: translateY(-40px); /* Adjust as needed */
+}
+
+.search-container input[type="text"] {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 30px; /* Larger font size */
+    color: #333;
+    padding-right: 12px;
+}
+
+.search-container input[type="text"]::placeholder {
+    color: #666;
+    opacity: 0.8;
+}
+
+.search-button {
+    background-color: #8a63d2; /* Purple color */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circle */
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.search-button:hover {
+    background-color: #704cb3;
+}
+
+.search-button svg {
+    stroke: white;
+    stroke-width: 2.5; /* Slightly thicker icon stroke */
+}
+
+/* Bubble Container & Styles */
+#bubble-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Important */
+    pointer-events: none; /* Allows clicks to pass through */
+    z-index: 1; /* Behind main content but above background */
+}
+
+.bubble {
+    position: absolute;
+    bottom: -150px; /* Start below the screen */
+    background-color: rgba(255, 255, 255, 0.15); /* More transparent */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2), 0 0 5px rgba(255, 255, 255, 0.1);
+    animation: floatBubble linear infinite;
+    opacity: 0; /* Start transparent, fade in with delay */
+}
+
+/* Bubble Animation */
+@keyframes floatBubble {
+    0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+    10%, 90% { /* Fade in quickly, stay visible for most of the duration */
+         opacity: 0.7;
+    }
+    100% {
+        /* Move significantly upwards, add slight horizontal drift */
+        transform: translateY(-120vh) translateX(calc(sin(var(--drift-angle, 0deg)) * 30px));
+        opacity: 0;
+    }
+}
+
+/* Hover Panel Styles */
+.hover-panel {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 110; /* Above header */
+    display: none; /* Initially hidden */
+    min-width: 200px;
+    margin-top: 10px; /* Space below the header item */
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.hover-panel.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Result Cards Styles */
+#result-container {
+    display: flex;
+    gap: 20px; /* Space between cards */
+    width: 80%; /* Adjust width as needed */
+    max-width: 700px;
+    justify-content: center;
+    align-items: stretch; /* Make cards same height if needed */
+    overflow: hidden; /* Clip content during transition */
+    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out, transform 0.4s ease-in-out;
+    opacity: 0; /* Hidden by default */
+    max-height: 0; /* Collapsed by default */
+    transform: translateY(20px); /* Start slightly lower */
+    pointer-events: none; /* Not interactive when hidden */
+}
+
+#result-container.result-cards-visible {
+    opacity: 1;
+    max-height: 500px; /* Allow space to expand */
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.result-card {
+    flex: 1; /* Distribute space equally */
+    background-color: rgba(255, 255, 255, 0.3); /* Slightly more opaque than search */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.result-card h3 {
+    margin-bottom: 10px;
+    color: #444;
+    font-size: 1.1em;
+}
+
+.result-card p {
+    color: #555;
+    font-size: 0.95em;
+}
+
+/* 第四页样式 */
+#fourth-page {
+    background-image: url('images/fourth_page/fourth_page.png');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* 垂直居中内容 */
+    height: 100vh; /* 设置为视口高度 */
+}
+
+
+/* 第五页内容布局 */
+.fifth-page-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+/* 梦境图片容器 */
+.dream-image-container {
+    width: 60%;
+    max-width: 800px;
+    height: 70%;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-left: 50px;
+    overflow: hidden;
+}
+
+/* 加载提示样式 */
+.image-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 18px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease;
+}
+
+.image-loading.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 生成的图片容器 */
+.generated-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+.generated-image.active {
+    opacity: 1;
+}
+
+.generated-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+/* 可视梦境按钮样式 */
+.visual-dream-btn {
+    padding: 15px 30px;
+    font-size: 20px;
+    border: none;
+    border-radius: 50px;
+    background-color: brown; /* 棕色背景 */
+    color: white;
+    cursor: pointer;
+    animation: bounce 1s infinite; /* 添加跳动动画 */
+    position: absolute; /* 绝对定位 */
+    bottom: 200px; /* 距离底部 */
+    right: 140px; /* 距离右侧 */
+}
+
+/* 动态跳动效果 */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px); /* 向上跳动 */
+    }
+    60% {
+        transform: translateY(-5px); /* 向下跳动 */
+    }
+}
+
+/* 错误信息样式 */
+.error-message {
+    color: #ff6b6b;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    font-size: 16px;
+}
+
+/* 信息消息样式 */
+.info-message {
+    color: #74c0fc;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    font-size: 16px;
+}
+
+/* 查看任务按钮样式 */
+.check-task-btn {
+    background-color: rgba(116, 192, 252, 0.3);
+    border: 1px solid rgba(116, 192, 252, 0.7);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.check-task-btn:hover {
+    background-color: rgba(116, 192, 252, 0.5);
+}
+
+/* 调试按钮样式 */
+.debug-btn {
+    background-color: rgba(255, 107, 107, 0.3);
+    border: 1px solid rgba(255, 107, 107, 0.7);
+    margin-left: 10px;
+}
+
+.debug-btn:hover {
+    background-color: rgba(255, 107, 107, 0.5);
+}
+
+/* 鼠标粒子效果 */
+.particle {
+    position: fixed; /* 从absolute改为fixed，使粒子相对于视口固定 */
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.7;
+    transition: opacity 1s ease;
+}
+
+.particle.fade {
+    opacity: 0;
+}
+
+/* 语音解锁覆盖层 */
+.voice-unlock-overlay {
+    position: fixed; /* 修改为 fixed 定位相对于视口 */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* 精确居中 */
+    width: 80%; /* 调整宽度 */
+    max-width: 400px; /* 最大宽度 */
+    padding: 30px; /* 增加内边距 */
+    /* 移除旧的背景 */
+    /* background: rgba(0, 0, 0, 0.8); */ 
+    /* 添加玻璃材质效果 */
+    background-color: rgba(0, 0, 0, 0.2); /* 调整透明度和基色，例如用半透明黑色 */
+    backdrop-filter: blur(15px); 
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px; /* 调整圆角 */
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2); /* 添加柔和阴影 */
+
+    color: #fff; /* 文字颜色保持白色 */
+    display: flex; /* 内部元素使用 flex 布局 */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10001; /* 确保在顶层 */
+    opacity: 1; /* 确保可见 */
+    transition: opacity 0.5s ease, transform 0.5s ease; /* 添加过渡动画 */
+}
+
+/* 隐藏时的状态 */
+.voice-unlock-overlay:not([style*="display: none"]) {
+    /* 这个选择器可能不准确，取决于JS如何隐藏它，如果用class控制则修改此处 */
+}
+
+/* 解锁成功时的动画 */
+.voice-unlock-overlay.unlock-success {
+    opacity: 0;
+    transform: translate(-50%, -70%) scale(0.9); /* 轻微向上移动并缩小 */
+    pointer-events: none; /* 动画后禁止交互 */
+}
+
+.voice-unlock-prompt {
+    font-size: 1.3em; /* 调整字体大小 */
+    margin-bottom: 20px;
+}
+
+.listening-indicator {
+    display: flex; /* 保持 flex */
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+.listening-indicator svg {
+    width: 35px; /* 调整图标大小 */
+    height: 35px;
+}
+
+.recognition-result {
+    font-size: 1em;
+    min-height: 1.2em; /* 避免文字跳动 */
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .voice-unlock-prompt {
+        font-size: 1.8rem;
+    }
+    
+    .voice-unlock-button {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+    
+    .recognition-result {
+        font-size: 1.2rem;
+    }
+}
+
+/* 魔法特效 */
+.voice-unlock-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('images/magic-stars.png');
+    background-size: cover;
+    opacity: 0.2;
+    pointer-events: none;
+    animation: floatStars 60s linear infinite;
+}
+
+@keyframes floatStars {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 100% 100%;
+    }
+}
+
+/* 成功解锁动画 */
+.unlock-success {
+    animation: unlockSuccess 1.5s ease-out;
+}
+
+@keyframes unlockSuccess {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    80% {
+        opacity: 0.5;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+/* --- 新增目录介绍样式 --- */
+
+/* 初始隐藏 intro-container */
+#intro-container.hidden {
+    display: none;
+    /* 或者 visibility: hidden; opacity: 0; */
+}
+
+/* 目录容器 */
+#catalog-container {
+    position: fixed; /* 固定定位，覆盖整个屏幕 */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10002; /* 确保在最前面 */
+    cursor: pointer; /* 提示用户可以点击 */
+    opacity: 1;
+    transition: opacity 0.8s ease-in-out; /* 用于最后整体消失 */
+}
+
+#catalog-container.hidden {
+    opacity: 0;
+    pointer-events: none; /* 隐藏后不响应事件 */
+}
+
+/* 单个目录页面 */
+.catalog-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* 默认隐藏 */
+    pointer-events: none; /* 隐藏时不可交互 */
+    transition: opacity 0.6s ease-in-out;
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+/* 当前显示的页面 */
+.catalog-page.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 背景图片 */
+.catalog-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 覆盖整个容器 */
+    transition: opacity 0.8s ease-in-out; /* 用于最后消失 */
+}
+
+/* 元素和文字图片 */
+.catalog-element,
+.catalog-word,
+.catalog-end-word {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* 保持图片比例 */
+    pointer-events: none; /* 不阻挡页面点击 */
+    transition: opacity 0.5s ease-in-out; /* 用于点击后渐隐 */
+}
+
+/* 特意为element添加弹动动画 */
+.catalog-element {
+    animation: bounce-subtle 3s ease-in-out infinite;
+}
+
+/* 用于渐隐的类 */
+.fade-out {
+    opacity: 0 !important; /* 强制覆盖，确保消失 */
+}
+
+/* 定义轻微弹动动画 */
+@keyframes bounce-subtle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-15px); /* 调整弹动幅度 */
+    }
+}
+
+/* --- 目录介绍样式结束 --- */

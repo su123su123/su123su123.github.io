@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梦境搜索</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style_add.css">
+    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+    <style>
+        /* 删除语音识别相关样式，已经移动到style_add.css */
+    </style>
+</head>
+<body>
+    <!-- 新增的目录介绍部分 -->
+    <div id="catalog-container">
+        <!-- 第1页 -->
+        <div class="catalog-page" id="catalog-page-1">
+            <img src="images/content/bg.png" alt="背景" class="catalog-bg">
+            <img src="images/content/element1.png" alt="元素1" class="catalog-element">
+            <img src="images/content/word1.png" alt="文字1" class="catalog-word">
+        </div>
+        <!-- 第2页 -->
+        <div class="catalog-page" id="catalog-page-2">
+            <img src="images/content/bg.png" alt="背景" class="catalog-bg">
+            <img src="images/content/element2.png" alt="元素2" class="catalog-element">
+            <img src="images/content/word2.png" alt="文字2" class="catalog-word">
+        </div>
+        <!-- 第3页 -->
+        <div class="catalog-page" id="catalog-page-3">
+            <img src="images/content/bg.png" alt="背景" class="catalog-bg">
+            <img src="images/content/element3.png" alt="元素3" class="catalog-element">
+            <img src="images/content/word3.png" alt="文字3" class="catalog-word">
+        </div>
+        <!-- 第4页 -->
+        <div class="catalog-page" id="catalog-page-4">
+            <img src="images/content/bg.png" alt="背景" class="catalog-bg">
+            <img src="images/content/element4.png" alt="元素4" class="catalog-element">
+            <img src="images/content/word4.png" alt="文字4" class="catalog-word">
+        </div>
+        <!-- 第5页 (结尾页) -->
+        <div class="catalog-page" id="catalog-page-5">
+            <img src="images/content/bg.png" alt="背景" class="catalog-bg">
+            <img src="images/content/end.png" alt="结尾文字" class="catalog-end-word">
+        </div>
+    </div>
+
+    <audio id="background-music" loop>
+        <source src="audio/bg.mp3" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+    <audio id="unlock-sound">
+        <source src="audio/unlock.mp3" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+    <script>
+        // 自动播放音频并确保有声音（不静音）
+        window.addEventListener('DOMContentLoaded', function() {
+            var audio = document.getElementById('background-music');
+            // 取消静音
+            audio.muted = false;
+            // 处理自动播放策略
+            var playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(function(error) {
+                    // 用户未与页面交互时，自动播放可能会失败
+                    // 可以在用户点击任意地方时再次尝试播放
+                    document.body.addEventListener('click', function tryPlayOnce() {
+                        audio.play();
+                        document.body.removeEventListener('click', tryPlayOnce);
+                    });
+                });
+            }
+        });
+    </script>
+
+    <!-- 原有的开场动画部分 - 添加 hidden 类 -->
+    <div id="intro-container" class="intro-active hidden">
+        <!-- 书本翻页组件 -->
+        <div id="book-container">
+            <div class="book">
+                <div id="cover" class="page-wrapper">
+                    <div class="page">
+                        <div class="front-cover">
+                            <img id="cover-image" src="images/opener/lock_cover.png" alt="锁定封面">
+                        </div>
+                        <div class="back-cover">
+                            <img src="images/opener/introduction_left.png" alt="引言页左侧">
+                        </div>
+                    </div>
+                </div>
+                <!-- 语音解锁覆盖层 (移动到 book 外面, intro-container 里面) -->
+                <!-- <div id="voice-unlock-overlay" class="voice-unlock-overlay"> ... </div> -->
+                <div id="introduction" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/introduction_right.png" alt="引言页右侧">
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/1_left.jpg" alt="第1页左侧">
+                        </div>
+                    </div>
+                </div>
+                <div id="page1" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/1_right.jpg" alt="第1页右侧">
+                            <!-- 游戏1按钮容器 -->
+                            <div class="game-button-container">
+                                <a id="game1-link" href="game1.html" target="_blank" onclick="event.stopPropagation(); return true;" class="bouncing-button">
+                                    <span>✨</span>小女孩的房间<span>✨</span>
+                                </a>
+                                <div class="enter-hint">按Enter键进入关卡</div>
+                            </div>
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/2_left.jpg" alt="第2页左侧">
+                        </div>
+                    </div>
+                </div>
+                <div id="page2" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/2_right.jpg" alt="第2页右侧">
+                            <!-- 游戏2按钮容器 -->
+                            <div class="game-button-container">
+                                <a id="game2-link" href="game2.html" target="_blank" onclick="event.stopPropagation(); return true;" class="bouncing-button">
+                                    <span>🌸</span>樱花的世界<span>🌸</span>
+                                </a>
+                                <div class="enter-hint">按Enter键进入关卡</div>
+                            </div>
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/3_left.jpg" alt="第3页左侧">
+                        </div>
+                    </div>
+                </div>
+                <div id="page3" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/3_right.jpg" alt="第3页右侧">
+                            <!-- 游戏3按钮容器 -->
+                            <div class="game-button-container">
+                                <a id="game3-link" href="game3.html" target="_blank" onclick="event.stopPropagation(); return true;" class="bouncing-button">
+                                    <span>🍬</span>糖果的天地<span>🍬</span>
+                                </a>
+                                <div class="enter-hint">按Enter键进入关卡</div>
+                            </div>
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/4_left.jpg" alt="第4页左侧">
+                        </div>
+                    </div>
+                </div>
+                <div id="page4" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/4_right.jpg" alt="第4页右侧">
+                            <!-- 未开放关卡提示 -->
+                            <div class="coming-soon-container">
+                                <div class="coming-soon-text">✨ 梦境关卡尚未开放，敬请期待！✨</div>
+                            </div>
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/5_left.jpg" alt="第5页左侧">
+                        </div>
+                    </div>
+                </div>
+                <div id="page5" class="page-wrapper">
+                    <div class="page">
+                        <div class="page-front">
+                            <img src="images/opener/5_right.jpg" alt="第5页右侧">
+                            <!-- 未开放关卡提示 -->
+                            <div class="coming-soon-container">
+                                <div class="coming-soon-text">✨ 梦境关卡尚未开放，敬请期待！✨</div>
+                            </div>
+                        </div>
+                        <div class="page-back">
+                            <img src="images/opener/end.png" alt="封底">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 语音解锁覆盖层 (移动到这里) -->
+        <div id="voice-unlock-overlay" class="voice-unlock-overlay">
+            <div class="voice-unlock-prompt">请说出《哈利波特》中的解锁咒语以解锁梦境之书</div>
+            <div id="listening-indicator" class="listening-indicator">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V6z"/>
+                    <path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V22h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </div>
+            <div id="recognition-result" class="recognition-result">正在聆听...</div>
+        </div>
+        <div id="intro-overlay">
+            <div class="click-hint">点击屏幕继续</div>
+        </div>
+    </div>
+
+    <div class="page-scroll-container">
+        <!-- 第一页 -->
+        <section class="page" id="first-page">
+            <div class="centered-button">
+                <button class="dream-journey-btn">开启梦旅</button>
+            </div>
+        </section>
+
+        <!-- 新插入的第二页 -->
+        <section class="page sec_page" id="new-second-page">
+            <video class="sec-bg-video" src="images/sec_page/bg.mov" autoplay loop muted playsinline></video>
+            <div class="sec-content">
+                <div class="sec-left">
+                    <img src="images/sec_page/slogan.png" alt="slogan" class="sec-img sec-slogan">
+                    <img src="images/sec_page/title.png" alt="title" class="sec-img sec-title">
+                    <img src="images/sec_page/txt.png" alt="txt" class="sec-img sec-txt">
+                </div>
+                <div class="sec-right">
+                    <img src="images/sec_page/hudie.png" alt="hudie" class="sec-img sec-hudie">
+                </div>
+            </div>
+            <div class="scroll-prompt">
+                <div class="prompt-text" style="font-size: 28px;" >滑动解梦</div>
+                <div class="prompt-arrows">
+                    <span style="font-size: 28px;">ˇ</span>
+                    <span style="font-size: 28px;">ˇ</span>
+                    <span style="font-size: 28px;">ˇ</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 原来的第二页，现在是第三页 -->
+        <section class="page trd_page" id="third-page">
+            <!-- 背景视频 -->
+            <video class="third-bg-video" src="images/third_page/bg.mov" autoplay loop muted playsinline></video>
+            <div class="bubble-bg" id="bubble-bg"></div>
+            <!-- 精灵及对话框和灯光元素 -->
+            <div class="trd-sprite">
+                <img src="images/third_page/spirit.png" class="spirit" alt="spirit">
+                <img src="images/third_page/dialog.png" class="dialog" alt="dialog">
+                <img src="images/third_page/light.png" class="light" alt="light">
+            </div>
+            <div class="page-container">
+
+
+                <!-- Hidden Panels for Hover Effect -->
+                <div id="panel-mengzhi" class="hover-panel">
+                    <h2>梦织界面</h2>
+                    <p>这里是梦织相关的内容...</p>
+                </div>
+                <div id="panel-mengying" class="hover-panel">
+                    <h2>梦影界面</h2>
+                    <p>这里是梦影相关的内容...</p>
+                </div>
+                <div id="panel-mengjie" class="hover-panel">
+                    <h2>梦解界面</h2>
+                    <p>这里是梦解相关的内容...</p>
+                </div>
+
+
+                <main>
+                    <div class="search-container">
+                        <input type="text" id="dream-input" placeholder="输入梦境">
+                        <button class="search-button" id="search-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="result-container" class="result-cards-hidden">
+                        <div class="result-card" id="card-theme">
+                            <h3>潜意识主题</h3>
+                            <p></p>
+                        </div>
+                        <div class="result-card" id="card-emotion">
+                            <h3>情绪分析</h3>
+                            <p></p>
+                        </div>
+                        <div class="result-card" id="card-advice">
+                            <h3>疗愈建议</h3>
+                            <p></p>
+                        </div>
+                    </div>
+
+                </main>
+
+                <div id="bubble-container">
+                    <!-- Bubbles will be generated here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- 第五页 -->
+        <section class="page fifth-page" id="fifth-page">
+            <div class="fifth-flex">
+                <div class="fifth-left">
+                    <video class="fifth-left-video" autoplay loop muted>
+                        <source src="images/fifth_page/left.mov" type="video/mp4">
+                    </video>
+                    <div class="dream-image-container">
+                        <div class="image-loading">
+                            <div class="loading-spinner"></div>
+                            <p>梦境生成中...</p>
+                            <div class="progress-container" style="width: 80%; background-color: #555; border-radius: 5px; overflow: hidden; margin-top: 10px; height: 10px;">
+                              <div class="progress-bar" style="width: 0%; height: 100%; background-color: #74c0fc; transition: width 0.5s ease;"></div>
+                            </div>
+                            <p class="progress-text" style="margin-top: 5px; font-size: 14px;"></p>
+                            <p class="error-count" style="margin-top: 5px; font-size: 12px; color: #ff6b6b;"></p>
+                        </div>
+                        <div class="generated-image">
+                            <img src="" alt="生成的梦境图像">
+                        </div>
+                        <div class="info-message" style="display: none;"></div>
+                        <div class="error-message" style="display: none;"></div>
+                        <button class="check-task-btn" style="display: none;">查看任务</button>
+                        <button class="debug-btn" style="display: none;">调试信息</button>
+                    </div>
+                    <div class="dream-image-mask"></div>
+                </div>
+                <div class="fifth-right">
+                    <div class="fifth-right-texts">
+                        <img class="fifth-slogan" src="images/fifth_page/slogan.png" alt="Slogan">
+                        <img class="fifth-title" src="images/fifth_page/title.png" alt="Title">
+                        <img class="fifth-txt" src="images/fifth_page/txt.png" alt="Description">
+                    </div>
+                    <button class="visual-dream-btn">可视梦境</button>
+                    <img class="fifth-right-img" src="images/fifth_page/example.png" alt="Example Image">
+                </div>
+            </div>
+            <!-- 新增的可视化覆盖层 -->
+            <div id="visualization-overlay">
+                <div class="blur-background"></div>
+                <video id="load-video" loop muted playsinline>
+                    <source src="images/six_page/load.mov" type="video/quicktime">
+                    <source src="images/six_page/load.mp4" type="video/mp4">
+                    您的浏览器不支持视频标签。
+                </video>
+                <div class="window-container">
+                     <img id="window-image" src="images/six_page/window.png" alt="窗口">
+                     <!-- 生图UI将移动到这里 -->
+                     <div id="embedded-ui-placeholder"></div>
+                </div>
+                <button id="close-visualization-btn">&times;</button>
+            </div>
+        </section>
+
+
+        <!-- 最后页面 -->
+        <div id="last-page" class="page">
+            <div class="background-image">
+                <img src="images/end_page/bg.png" alt="底图" class="bg-bottom">
+                <img src="images/end_page/bg_above.png" alt="上层图" class="bg-above">
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script src="script_add.js"></script>
+
+    <script>
+      // Lenis smooth scrolling
+      const lenis = new Lenis()
+      function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
+      requestAnimationFrame(raf)
+
+      // Observe sec_page entry/exit to toggle animations
+      const pagesToObserve = [
+        document.getElementById('new-second-page'),
+        document.getElementById('third-page')
+      ]
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const el = entry.target
+          if (entry.isIntersecting) el.classList.add('animate')
+          else el.classList.remove('animate')
+        })
+      }, { threshold: 0.5 })
+      pagesToObserve.forEach(page => io.observe(page));
+
+      // 点击输入框时隐藏背景视频，使用静态背景
+      const trdPage = document.querySelector('.trd_page');
+      const dreamInput = document.getElementById('dream-input');
+      dreamInput.addEventListener('focus', () => trdPage.classList.add('no-video'));
+      dreamInput.addEventListener('blur', () => trdPage.classList.remove('no-video'));
+
+      document.addEventListener('DOMContentLoaded', function() {
+        // 语音识别相关代码
+        const listeningIndicator = document.getElementById('listening-indicator');
+        const recognitionResult = document.getElementById('recognition-result');
+        const voiceUnlockOverlay = document.getElementById('voice-unlock-overlay');
+        const coverImage = document.getElementById('cover-image');
+        const unlockSound = document.getElementById('unlock-sound');
+        const magicPhrase = "阿拉霍洞开"; // 解锁咒语
+        
+        // 检查浏览器是否支持语音识别
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            recognitionResult.textContent = "您的浏览器不支持语音识别功能，请尝试使用Chrome浏览器。";
+            return;
+        }
+        
+        // 创建语音识别对象
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN'; // 设置语言为中文
+        recognition.interimResults = false; // 只返回最终结果
+        recognition.maxAlternatives = 1; // 返回最可能的识别结果
+        recognition.continuous = false; // 不连续识别，每次识别完成后停止
+        
+        // 页面加载后自动开始语音识别
+        setTimeout(function() {
+            startVoiceRecognition();
+        }, 500); // 延迟半秒启动，确保页面完全加载
+        
+        function startVoiceRecognition() {
+            recognition.start();
+            listeningIndicator.style.display = 'flex';
+            recognitionResult.textContent = "正在聆听...";
+        }
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript.trim();
+            recognitionResult.textContent = `您说: "${transcript}"`;
+            
+            // 检查是否说出了解锁咒语
+            if (transcript.includes(magicPhrase)) {
+                // 解锁成功
+                unlockCover();
+            } else {
+                // 解锁失败，重新开始识别
+                setTimeout(function() {
+                    recognitionResult.textContent = "咒语不正确，请重试。";
+                    setTimeout(startVoiceRecognition, 1500);
+                }, 1000);
+            }
+        };
+        
+        recognition.onerror = function(event) {
+            console.log("语音识别错误:", event.error);
+            // 出错后重新开始识别
+            if (event.error !== 'aborted') {
+                setTimeout(function() {
+                    recognitionResult.textContent = "请重新说出咒语";
+                    setTimeout(startVoiceRecognition, 1000);
+                }, 1000);
+            }
+        };
+        
+        recognition.onend = function() {
+            // 如果不是因为识别到正确咒语而结束的，就自动重新开始
+            if (voiceUnlockOverlay.style.display !== 'none' && !recognitionResult.textContent.includes("咒语正确")) {
+                setTimeout(startVoiceRecognition, 300);
+            }
+        };
+        
+        function unlockCover() {
+            // 播放解锁音效
+            unlockSound.play();
+            
+            // 更换封面图片为解锁状态
+            coverImage.src = "images/opener/cover.png";
+            coverImage.alt = "封面";
+            
+            // 添加解锁成功动画类
+            voiceUnlockOverlay.classList.add('unlock-success');
+            
+            // 延迟移除语音解锁覆盖层，给动画足够的时间
+            setTimeout(() => {
+                voiceUnlockOverlay.style.display = 'none';
+            }, 1500);
+            
+            // 显示解锁成功消息
+            recognitionResult.textContent = "咒语正确！封面已解锁。";
+        }
+
+        // 添加键盘监听，处理Enter键进入游戏
+        let currentActivePage = null;
+        const pages = document.querySelectorAll('.page-wrapper');
+        
+        // 获取当前活动页面
+        function updateActivePage() {
+          pages.forEach((page, index) => {
+            const rect = page.getBoundingClientRect();
+            const isVisible = rect.left >= 0 && rect.left < window.innerWidth / 2;
+            if (isVisible) {
+              currentActivePage = index;
+            }
+          });
+        }
+        
+        // 初始更新活动页
+        setTimeout(updateActivePage, 1000);
+        
+        // 在翻页时更新活动页
+        document.addEventListener('click', function() {
+          setTimeout(updateActivePage, 500); // 延迟更新，等待翻页动画
+        });
+        
+        // 处理Enter键进入游戏
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter' && currentActivePage !== null) {
+            switch(currentActivePage) {
+              case 1: // 小女孩的房间页（page1）
+                localStorage.setItem('gameCompleted', 'game1');  // 标记正在玩game1
+                window.open('game1.html', '_blank'); // 在新标签页打开
+                break;
+              case 2: // 樱花世界页（page2）
+                localStorage.setItem('gameCompleted', 'game2');  // 标记正在玩game2
+                window.open('game2.html', '_blank'); // 在新标签页打开
+                break;
+              case 3: // 糖果天地页（page3）
+                localStorage.setItem('gameCompleted', 'game3');  // 标记正在玩game3
+                window.open('game3.html', '_blank'); // 在新标签页打开
+                break;
+            }
+          }
+        });
+        
+        // 检查是否从游戏通关后返回
+        window.addEventListener('load', function() {
+          const gameCompleted = localStorage.getItem('gameCompleted');
+          if (gameCompleted) {
+            // 移除存储的游戏状态
+            localStorage.removeItem('gameCompleted');
+            
+            // 根据完成的游戏，自动跳转到下一个游戏
+            setTimeout(() => {
+              const bookContainer = document.getElementById('book-container');
+              if (bookContainer) {
+                switch(gameCompleted) {
+                  case 'game1':
+                    // 跳转到樱花世界页面
+                    turnToPage('page2');
+                    break;
+                  case 'game2':
+                    // 跳转到糖果天地页面
+                    turnToPage('page3');
+                    break;
+                  case 'game3':
+                    // 最后一个游戏通关后可以跳转到结尾页或其他页面
+                    turnToPage('page4');
+                    break;
+                }
+              }
+            }, 1500); // 延迟翻页，等待动画完成
+            
+            return; // 如果是游戏通关返回，不需要执行后面的returnToPage逻辑
+          }
+          
+          // 原有的returnToPage逻辑保留，以防需要 - 这部分现在不再需要，因为returnToBookPage不再被设置
+          /*
+          const returnToPage = localStorage.getItem('returnToBookPage');
+          if (returnToPage) {
+            // 先移除存储的返回页面信息
+            localStorage.removeItem('returnToBookPage');
+            
+            // 等待书本加载完成后翻到对应页面
+            setTimeout(() => {
+              const bookContainer = document.getElementById('book-container');
+              if (bookContainer) {
+                switch(returnToPage) {
+                  case 'page1':
+                    // 翻到小女孩的房间页
+                    turnToPage('page1');
+                    break;
+                  case 'page2':
+                    // 翻到樱花世界页
+                    turnToPage('page2');
+                    break;
+                  case 'page3':
+                    // 翻到糖果天地页
+                    turnToPage('page3');
+                    break;
+                }
+              }
+            }, 1500); // 延迟翻页，等待动画完成
+          }
+          */
+        });
+        
+        // 翻页到指定页面的辅助函数
+        function turnToPage(targetPageId) {
+          // 模拟点击，触发翻页效果
+          let foundTarget = false;
+          let currentPage = document.getElementById('cover');
+          
+          // 从封面开始，一页一页翻，直到找到目标页
+          while (currentPage && currentPage.id !== targetPageId) {
+            // 模拟点击翻页
+            currentPage.click();
+            
+            // 获取下一页
+            const index = Array.from(pages).indexOf(currentPage);
+            if (index < pages.length - 1) {
+              currentPage = pages[index + 1];
+            } else {
+              break;
+            }
+            
+            // 防止无限循环
+            if (currentPage.id === targetPageId) {
+              foundTarget = true;
+              break;
+            }
+          }
+        }
+      });
+    </script>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery.easing.1.3.js"></script>
+    <script src="js/jquery.booklet.latest.min.js"></script>
+    <script src="js/book_config.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/share.js"></script>
+
+    <!-- 新增目录介绍交互逻辑 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const catalogContainer = document.getElementById('catalog-container');
+            const catalogPages = document.querySelectorAll('.catalog-page');
+            const introContainer = document.getElementById('intro-container');
+            let currentPageIndex = 0;
+
+            // 初始显示第一页
+            if (catalogPages.length > 0) {
+                catalogPages[currentPageIndex].classList.add('active');
+            }
+
+            catalogContainer.addEventListener('click', () => {
+                const currentPage = catalogPages[currentPageIndex];
+                if (!currentPage) return;
+
+                const element = currentPage.querySelector('.catalog-element');
+                const word = currentPage.querySelector('.catalog-word');
+                const endWord = currentPage.querySelector('.catalog-end-word');
+
+                // 渐隐当前页的元素和文字 (如果存在)
+                if (element) {
+                    element.classList.add('fade-out');
+                }
+                if (word) {
+                    word.classList.add('fade-out');
+                }
+                 // 如果是最后一页，也渐隐结束文字
+                if (currentPageIndex === catalogPages.length - 1 && endWord) {
+                     endWord.classList.add('fade-out');
+                }
+
+                // 延迟切换页面，让渐隐动画播放
+                setTimeout(() => {
+                    // 隐藏当前页
+                    currentPage.classList.remove('active');
+
+                    // 移动到下一页或结束
+                    currentPageIndex++;
+
+                    if (currentPageIndex < catalogPages.length) {
+                        // 显示下一页
+                        catalogPages[currentPageIndex].classList.add('active');
+                        // 新页面的元素和文字恢复不透明 (如果之前被隐藏过)
+                        const nextElement = catalogPages[currentPageIndex].querySelector('.catalog-element');
+                        const nextWord = catalogPages[currentPageIndex].querySelector('.catalog-word');
+                        if (nextElement) nextElement.classList.remove('fade-out');
+                        if (nextWord) nextWord.classList.remove('fade-out');
+                    } else {
+                        // 所有目录页结束，隐藏目录容器，显示书本
+                        catalogContainer.classList.add('hidden');
+                        introContainer.classList.remove('hidden');
+                        // 此处可以触发书本的初始化或自动翻页等 (如果需要)
+                        // 例如: $('#mybook').booklet("next");
+                    }
+                }, 500); // 延迟时间应略小于或等于CSS中的过渡时间
+            });
+        });
+    </script>
+    <!-- 目录介绍交互逻辑结束 -->
+
+</body>
+</html>

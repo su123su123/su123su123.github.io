@@ -1,0 +1,1354 @@
+/* Basic Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth; /* 平滑滚动效果 */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    height: 100vh; /* Full viewport height */
+    overflow-x: hidden; /* 允许垂直滚动，但禁止水平滚动 */
+    position: relative; /* Needed for absolute positioning of children */
+    background: #000;
+}
+
+/* 页面滚动容器 */
+.page-scroll-container {
+    width: 100%;
+    height: auto; /* 自适应高度，允许滚动 */
+}
+
+/* 每个页面的基本样式 */
+.page {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.92);
+    transition: opacity 1.4s cubic-bezier(0.4,0,0.2,1), transform 1.4s cubic-bezier(0.4,0,0.2,1);
+}
+.page.in-view {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* 第一页样式 */
+#first-page {
+    background-image: url('images/first_page/first_page_black.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-image 5s ease;
+}
+
+/* 当背景图变化时的样式 */
+#first-page.colored {
+    background-image: url('images/first_page/first_page_color.jpg');
+}
+
+/* 按钮居中容器 */
+.centered-button {
+    position: absolute;
+    /* 根据红框位置调整，可能需要根据实际情况调整 */
+    top: 65%;
+    right: 10%;
+    transition: opacity 2s ease;
+}
+
+/* 开启梦旅按钮样式 */
+.dream-journey-btn {
+    padding: 15px 40px;
+    font-size: 20px;
+    border: none;
+    border-radius: 50px;
+    background-color: rgba(255, 192, 203, 0.3); /* 粉色半透明 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dream-journey-btn:hover {
+    background-color: rgba(255, 192, 203, 0.5); /* 悬停时背景更不透明 */
+}
+
+/* 按钮淡出效果 */
+.centered-button.fade-out {
+    opacity: 0;
+    pointer-events: none; /* 防止与已经淡出的按钮交互 */
+}
+
+/* 新插入的第二页样式 */
+#new-second-page {
+    /* 将 scroll-prompt 定位到 new-second-page 底部，覆盖在视频上 */
+    position: relative;
+}
+
+#new-second-page .scroll-prompt {
+    position: absolute;
+    bottom: 4vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.sec-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+}
+
+
+
+.sec-img {
+    max-width: 100%;
+
+    pointer-events: auto;
+}
+
+.sec-hudie {
+    height: 100vh !important;
+    width: auto;
+    transform: translateX(100px);
+    opacity: 0;
+    animation: hudie-enter 1s ease-out 0.6s forwards;
+}
+
+@keyframes hudie-enter {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.scroll-prompt {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5); /* 降低透明度 */
+    animation: fadeUpDown 2s infinite ease-in-out;
+    font-family: 'HarmonyOS Sans SC', sans-serif; /* 设置字体 */
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)); /* 添加渐变效果 */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.prompt-text {
+    font-size: 36px; /* 增大字体 */
+    margin-bottom: 10px; /* 增大间距 */
+}
+
+.prompt-arrows span {
+    display: block;
+    line-height: 1.2; /* 调整行高 */
+    font-size: 48px; /* 增大箭头图标 */
+}
+
+/* 定义上下淡入淡出动画 */
+@keyframes fadeUpDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px); /* 从稍上方开始 */
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(10px); /* 向稍下方移动消失 */
+    }
+}
+
+/* Scroll Animation Styles */
+.scroll-animate {
+    opacity: 0;
+    transform: translateY(120px) scale(0.65);
+    transition: opacity 1.2s cubic-bezier(.4,1,.4,1), transform 1.2s cubic-bezier(.4,1,.4,1);
+    filter: blur(6px);
+}
+.scroll-animate.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+}
+
+/* Optional: Add different animations for different elements if needed */
+
+/* Optional: Click outside to close panels */
+
+/* 原第二页（现在是第三页）的样式 */
+/* 选择器更新为 #third-page .page-container 如果需要特定样式 */
+.page-container {
+    width: 100%;
+    height: 100%;
+    background-image: url('images/2.png'); /* Your background image */
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: relative; /* Context for absolute positioning */
+    display: flex;
+    flex-direction: column; /* Stack header and main */
+}
+
+/* Header Styles */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+    border-bottom: 1px solid #eee;
+    position: fixed; /* 固定在顶部 */
+    top: 0; /* 顶部位置 */
+    width: 100%; /* 确保宽度为100% */
+    z-index: 100; /* 确保在其他内容之上 */
+}
+
+.logo svg {
+    color: #555;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 25px; /* Spacing between nav items */
+}
+
+nav ul li {
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+    transition: color 0.2s ease;
+    position: relative; /* Needed for hover panel positioning */
+}
+
+nav ul li:hover {
+    color: #000;
+}
+
+.auth-buttons .btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.auth-buttons .sign-in {
+    background-color: #f0f0f0;
+    color: #333;
+}
+.auth-buttons .sign-in:hover {
+    background-color: #e0e0e0;
+}
+
+.auth-buttons .register {
+    background-color: #333;
+    color: #fff;
+}
+.auth-buttons .register:hover {
+    background-color: #555;
+}
+
+/* Main Content & Search Bar */
+main {
+    flex-grow: 1; /* Takes remaining vertical space */
+    display: flex;
+    flex-direction: column; /* Stack search and results vertically */
+    justify-content: center;
+    align-items: center;
+    position: relative; /* Context for search bar & results */
+    z-index: 10; /* Above bubbles but below header */
+    padding-bottom: 50px; /* Add some space at the bottom */
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    /* --- 修改开始 --- */
+    /* 设置半透明的背景色 */
+    background-color: rgba(255, 255, 255, 0.2); /* 半透明白色背景 */
+    /* 应用背景模糊效果 */
+    backdrop-filter: blur(12px); /* 毛玻璃模糊程度，可调整数值 */
+    -webkit-backdrop-filter: blur(12px); /* 兼容 Safari 浏览器 */
+    /* 添加一个细微的边框增加玻璃质感（可选） */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    /* --- 修改结束 --- */
+    padding: 15px 25px; /* 修改：统一垂直内边距 */
+    border-radius: 50px; /* 圆角保持不变 */
+    width: 60%; /* 宽度保持不变 */
+    max-width: 500px; /* 最大宽度保持不变 */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 阴影保持不变 */
+    transition: transform 0.4s ease-in-out; /* Add transition for movement */
+    margin-bottom: 20px; /* Add initial margin below search */
+}
+
+/* Class to shift search container up */
+.search-container-shifted {
+    transform: translateY(-40px); /* Adjust as needed */
+}
+
+.search-container input[type="text"] {
+    flex-grow: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 30px; /* Larger font size */
+    color: #333;
+    padding-right: 12px;
+}
+
+.search-container input[type="text"]::placeholder {
+    color: #666;
+    opacity: 0.8;
+}
+
+.search-button {
+    background-color: #8a63d2; /* Purple color */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circle */
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.search-button:hover {
+    background-color: #704cb3;
+}
+
+.search-button svg {
+    stroke: white;
+    stroke-width: 2.5; /* Slightly thicker icon stroke */
+}
+
+/* Bubble Container & Styles */
+#bubble-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Important */
+    pointer-events: none; /* Allows clicks to pass through */
+    z-index: 1; /* Behind main content but above background */
+}
+
+.bubble {
+    position: absolute;
+    bottom: -150px; /* Start below the screen */
+    background-color: rgba(255, 255, 255, 0.15); /* More transparent */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2), 0 0 5px rgba(255, 255, 255, 0.1);
+    animation: floatBubble linear infinite;
+    opacity: 0; /* Start transparent, fade in with delay */
+}
+
+/* Bubble Animation */
+@keyframes floatBubble {
+    0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+    10%, 90% { /* Fade in quickly, stay visible for most of the duration */
+         opacity: 0.7;
+    }
+    100% {
+        /* Move significantly upwards, add slight horizontal drift */
+        transform: translateY(-120vh) translateX(calc(sin(var(--drift-angle, 0deg)) * 30px));
+        opacity: 0;
+    }
+}
+
+/* Hover Panel Styles */
+.hover-panel {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 110; /* Above header */
+    display: none; /* Initially hidden */
+    min-width: 200px;
+    margin-top: 10px; /* Space below the header item */
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.hover-panel.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Result Cards Styles */
+#result-container {
+    display: flex;
+    gap: 20px; /* Space between cards */
+    width: 80%; /* Adjust width as needed */
+    max-width: 700px;
+    justify-content: center;
+    align-items: stretch; /* Make cards same height if needed */
+    overflow: hidden; /* Clip content during transition */
+    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out, transform 0.4s ease-in-out;
+    opacity: 0; /* Hidden by default */
+    max-height: 0; /* Collapsed by default */
+    transform: translateY(20px); /* Start slightly lower */
+    pointer-events: none; /* Not interactive when hidden */
+}
+
+#result-container.result-cards-visible {
+    opacity: 1;
+    max-height: 500px; /* Allow space to expand */
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.result-card {
+    flex: 1; /* Distribute space equally */
+    background-color: rgba(255, 255, 255, 0.3); /* Slightly more opaque than search */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.result-card h3 {
+    margin-bottom: 10px;
+    color: #444;
+    font-size: 1.1em;
+}
+
+.result-card p {
+    color: #555;
+    font-size: 0.95em;
+}
+
+/* 第四页样式 */
+#fourth-page {
+    background-image: url('images/fourth_page/fourth_page.png');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* 垂直居中内容 */
+    height: 100vh; /* 设置为视口高度 */
+}
+
+/* 第五页样式 */
+#fifth-page {
+
+    display: flex;
+    justify-content: center; /* 修改为居中 */
+    align-items: center; /* 修改为居中 */
+    height: 100vh;
+    position: relative;
+}
+
+/* 第五页内容布局 */
+.fifth-flex {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+.fifth-left {
+    width: 42%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+}
+.fifth-left-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+    z-index: 1;
+    position: absolute;
+    left: 0; top: 0;
+}
+.dream-image-container {
+    position: relative;
+    width: 90%;
+    margin: 0 auto;
+    z-index: 2;
+    background: transparent;
+}
+.dream-image-mask {
+    position: absolute;
+    left: 5%;
+    top: 5%;
+    width: 90%;
+    height: 90%;
+    background: rgba(0,0,0,0.68);
+    filter: blur(12px);
+    border-radius: 22px;
+    z-index: 3;
+    display: none;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.dream-image-container.mask-active ~ .dream-image-mask {
+    display: block;
+    opacity: 1;
+}
+.fifth-right {
+    width: 58%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    background: url('images/fifth_page/right.png') center/cover no-repeat;
+    background-color: transparent;
+}
+.fifth-right-texts {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 36px;
+}
+.fifth-slogan, .fifth-title, .fifth-txt {
+    width: 32vw;
+    opacity: 0;
+    margin-bottom:2vh;
+    transform: translateY(40px) scale(0.95);
+    transition: opacity 0.8s, transform 0.8s;
+}
+.fifth-slogan{width:25vw;}
+.fifth-txt{width:35vw;}
+
+.fifth-page.in-view .fifth-slogan {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.2s;
+}
+.fifth-page.in-view .fifth-title {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.6s;
+}
+.fifth-page.in-view .fifth-txt {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 1s;
+}
+.fifth-right-img {
+    width: 70%;
+    max-width: 420px;
+    margin: 0 auto 24px auto;
+    display: none;
+}
+.visual-dream-btn {
+    margin-top: 16px;
+    align-self: center;
+}
+/* 按钮点击时，dream-image-mask显示（由js加mask-active到dream-image-container） */
+
+/* 加载提示样式 */
+.image-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 18px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease;
+}
+
+.image-loading.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 加载动画 */
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 生成的图片容器 */
+.generated-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+.generated-image.active {
+    opacity: 1;
+}
+
+.generated-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+}
+
+/* 可视梦境按钮样式 */
+.visual-dream-btn {
+    padding: 15px 30px;
+    font-size: 20px;
+    border: none;
+    border-radius: 50px;
+    background-color: brown; /* 棕色背景 */
+    color: white;
+    cursor: pointer;
+    animation: bounce 1s infinite; /* 添加跳动动画 */
+    position: absolute; /* 绝对定位 */
+    bottom: 200px; /* 距离底部 */
+    right: 140px; /* 距离右侧 */
+}
+
+/* 动态跳动效果 */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px); /* 向上跳动 */
+    }
+    60% {
+        transform: translateY(-5px); /* 向下跳动 */
+    }
+}
+
+/* 错误信息样式 */
+.error-message {
+    color: #ff6b6b;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    font-size: 16px;
+}
+
+/* 信息消息样式 */
+.info-message {
+    color: #74c0fc;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    font-size: 16px;
+}
+
+/* 查看任务按钮样式 */
+.check-task-btn {
+    background-color: rgba(116, 192, 252, 0.3);
+    border: 1px solid rgba(116, 192, 252, 0.7);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.check-task-btn:hover {
+    background-color: rgba(116, 192, 252, 0.5);
+}
+
+/* 调试按钮样式 */
+.debug-btn {
+    background-color: rgba(255, 107, 107, 0.3);
+    border: 1px solid rgba(255, 107, 107, 0.7);
+    margin-left: 10px;
+}
+
+.debug-btn:hover {
+    background-color: rgba(255, 107, 107, 0.5);
+}
+/* 新sec_page视频背景与布局 */
+.sec_page {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+    background: none;
+    padding: 0;
+}
+.sec-bg-video {
+    position: absolute;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    object-fit: cover;
+    z-index: 0;
+    pointer-events: none;
+    opacity:.5
+}
+.sec-content {
+    position: relative;
+    z-index: 1;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0 0 5vw;
+}
+.sec-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3vh;
+    align-items: flex-start;
+    flex: 1 1 0;
+    width:50%;
+}
+.sec-right {
+
+    width:50%;
+}
+.sec-img {
+    /* 只保留布局、尺寸等，不设置 opacity、transform、transition */
+}
+
+.sec-slogan{width:25vw}
+.sec-title{width:30vw}
+.sec-txt{width:35vw}
+
+/* 顺序动画延迟 */
+.sec-slogan.scroll-animate { transition-delay: 0.1s; }
+.sec-title.scroll-animate { transition-delay: 0.4s; }
+.sec-txt.scroll-animate { transition-delay: 0.7s; }
+.sec-hudie.scroll-animate { transition-delay: 1.0s; }
+.sec-img.scroll-animate { transition-delay: 1.3s; }
+
+/* 梦幻风格sec_page增强样式 */
+.sec_page {
+    background: linear-gradient(180deg, #0b1724 0%, #202a3f 100%);
+    /* 可选：添加花朵/蝴蝶半透明背景图，需有素材 */
+    /* background-image: url('images/sec_page/flowers_overlay.png'); */
+    background-blend-mode: lighten;
+    box-shadow: 0 0 80px 0 #0a1a2e inset;
+}
+
+.sec-title {
+    color: #b7eaff;
+    font-size: 4.2rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-shadow: 0 6px 32px #7fdaff, 0 2px 12px #000a, 0 1px 0 #fff8;
+    filter: drop-shadow(0 0 12px #b7eaff88);
+    line-height: 1.1;
+}
+
+.sec-slogan, .sec-txt {
+    color: #e2f6ff;
+    font-size: 1.6rem;
+    font-weight: 500;
+    opacity: 0.82;
+    text-shadow: 0 2px 8px #0006;
+    letter-spacing: 0.08em;
+}
+
+.sec-txt {
+    font-size: 1.2rem;
+    opacity: 0.7;
+}
+
+/* 蝴蝶动画建议样式 */
+.dream-butterfly {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+    animation: butterfly-float 8s infinite linear;
+    filter: drop-shadow(0 0 10px #b7eaffcc);
+    opacity: 0.88;
+}
+@keyframes butterfly-float {
+    0% { transform: translateY(0) scale(1) rotate(-10deg); opacity: 0.7; }
+    10% { opacity: 1; }
+    50% { transform: translateY(-120px) scale(1.08) rotate(8deg); opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-240px) scale(0.95) rotate(-12deg); opacity: 0.7; }
+}
+
+/* 可选：为花朵/云朵漂浮做类似动画 */
+
+/* 响应式优化 */
+@media (max-width: 900px) {
+  .sec-title { font-size: 2.2rem; }
+  .sec-slogan, .sec-txt { font-size: 1.1rem; }
+}
+
+/* sec_page 入场动画序列 */
+/* 1. 背景视频淡入并缩放 */
+.sec_page.animate .sec-bg-video {
+    animation: video-enter 1s ease-out forwards;
+}
+@keyframes video-enter {
+    0% { opacity: 0; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* 初始状态：sec_page 未触发动画时隐藏与偏移 */
+.sec_page:not(.animate) .sec-bg-video {
+    opacity: 0;
+    transform: scale(1.1);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.sec_page:not(.animate) .sec-slogan,
+.sec_page:not(.animate) .sec-title,
+.sec_page:not(.animate) .sec-txt {
+    opacity: 0;
+    transform: translateX(-400px);
+    transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+}
+.sec_page:not(.animate) .sec-hudie {
+    opacity: 0;
+    transform: translateX(400px);
+    filter: blur(8px);
+    transition: transform 0.6s ease-out, opacity 0.6s ease-out, filter 0.6s ease-out;
+}
+
+/* 2. 左侧三图大幅度弹性滑入 */
+.sec_page.animate .sec-slogan {
+    animation: slide-in-bounce 1s cubic-bezier(0.68,-0.55,0.27,1.55) forwards;
+    animation-delay: 1s;
+}
+.sec_page.animate .sec-title {
+    animation: slide-in-bounce 1s cubic-bezier(0.68,-0.55,0.27,1.55) forwards;
+    animation-delay: 1.4s;
+}
+.sec_page.animate .sec-txt {
+    animation: slide-in-bounce 1s cubic-bezier(0.68,-0.55,0.27,1.55) forwards;
+    animation-delay: 1.8s;
+}
+@keyframes slide-in-bounce {
+    0% { transform: translateX(-400px); opacity: 0; }
+    60% { transform: translateX(30px); opacity: 1; }
+    80% { transform: translateX(-10px); }
+    100% { transform: translateX(0); }
+}
+
+/* 3. hudie 右侧模糊滑入至清晰 */
+.sec_page.animate .sec-hudie {
+    animation: hudie-seq-enter 1s ease-out forwards;
+    animation-delay: 2.2s;
+}
+@keyframes hudie-seq-enter {
+    0% { transform: translateX(400px); opacity: 0; filter: blur(8px); }
+    100% { transform: translateX(0); opacity: 1; filter: blur(0); }
+}
+
+/* sec_page 叠加黑色渐变层 */
+.sec_page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.3));
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* 第三页 trd_page 背景与精灵动画 */
+.trd_page {
+    position: relative;
+    overflow: hidden;
+}
+.trd_page .third-bg-video {
+    position: absolute; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    object-fit: cover;
+    z-index: 3; /* 提高背景视频层级 */
+    opacity: 1;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.trd_page.no-video .third-bg-video {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.trd_page .bubble-bg {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100vw; height: 100vh;
+    z-index: 2;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.trd_page.no-video .bubble-bg {
+    opacity: 1;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.trd_page.animate .bubble-bg {
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+.trd_page .trd-sprite {
+    position: absolute;
+    right: 5%;
+    bottom: 0;
+    height: 100%;
+    width: 25%;
+    z-index: 20;
+}
+.trd_page .trd-sprite img {
+    opacity: 0;
+    width: 100%;
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    position:absolute;
+    bottom:0;
+    left:0;
+}
+
+.trd_page .trd-sprite img.spirit{
+    bottom:5%;
+    z-index:45;
+}
+.trd_page .trd-sprite img.dialog{
+    bottom:50%;
+    width:60%;
+    z-index:50;
+}
+.trd_page .trd-sprite img.light{
+    width:100%;
+    height:100%;
+    object-fit: contain;
+    padding:0 0 5% 0;
+    z-index:55;
+}
+
+.trd_page.animate .spirit {
+    animation:
+       sprite-enter 0.8s cubic-bezier(0.68,-0.55,0.27,1.55) forwards 0.2s,
+       sprite-float 2s ease-in-out 1.1s infinite;
+}
+.trd_page.animate .dialog {
+    animation:
+       sprite-enter 0.8s cubic-bezier(0.68,-0.55,0.27,1.55) forwards 0.7s,
+       sprite-float 2s ease-in-out 1.6s infinite;
+}
+.trd_page.animate .light {
+    animation:
+       sprite-enter 0.8s cubic-bezier(0.68,-0.55,0.27,1.55) forwards 1.2s;
+}
+@keyframes sprite-enter {
+    0% { opacity: 0; transform: translateY(80px) scale(0.8); }
+    80% { opacity: 1; }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* 精灵上下漂浮 */
+@keyframes sprite-float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-24px); }
+}
+
+/* 第三页动画顺序：默认黑色背景→视频缩放淡入→输入框自下而上淡入→精灵/对话框/灯光依次入场且动画时间加长，精灵和对话框入场后循环上下浮动 */
+.trd_page {
+    background: #000;
+}
+
+.trd_page .third-bg-video {
+    opacity: 0;
+    transform: scale(0.92);
+    transition: none;
+}
+.trd_page.animate .third-bg-video {
+    animation: third-bg-fadein 1.2s cubic-bezier(0.68,-0.55,0.27,1.1) forwards 0.1s;
+}
+.trd_page.no-video .third-bg-video {
+    opacity: 0;
+    transition: opacity 0.6s;
+}
+@keyframes third-bg-fadein {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.trd_page .search-container {
+    opacity: 0;
+    transform: translateY(80px);
+    transition: none;
+}
+.trd_page.animate .search-container {
+    animation: trd-search-in 1s cubic-bezier(0.68,-0.55,0.27,1.1) forwards 1.3s;
+}
+@keyframes trd-search-in {
+    0% { opacity: 0; transform: translateY(80px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.trd_page .trd-sprite img {
+    opacity: 0;
+    width: 100%;
+    transition: none;
+    position: absolute;
+    left: 0;
+}
+.trd_page .trd-sprite img.spirit { bottom:5%; z-index:45; }
+.trd_page .trd-sprite img.dialog { bottom:50%; width:60%; z-index:50; }
+.trd_page .trd-sprite img.light { width:100%; height:100%; object-fit:contain; padding:0 0 5% 0; z-index:55; }
+
+.trd_page.animate .spirit {
+    animation:
+       sprite-enter 1.2s cubic-bezier(0.68,-0.55,0.27,1.1) forwards 2.4s,
+       sprite-float 2s ease-in-out 3.7s infinite;
+}
+.trd_page.animate .dialog {
+    animation:
+       sprite-enter 1.2s cubic-bezier(0.68,-0.55,0.27,1.1) forwards 2.9s,
+       sprite-float 2s ease-in-out 4.2s infinite;
+}
+.trd_page.animate .light {
+    animation:
+       sprite-enter 1.2s cubic-bezier(0.68,-0.55,0.27,1.1) forwards 3.4s;
+}
+@keyframes sprite-enter {
+    0% { opacity: 0; transform: translateY(80px) scale(0.8); }
+    80% { opacity: 1; }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sprite-float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-24px); }
+}
+
+/* 添加开场动画相关样式 */
+#intro-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1.5s ease-out;
+}
+
+#intro-container.intro-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+#intro-container.intro-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#intro-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#intro-container.video-ended #intro-overlay {
+    opacity: 1;
+    cursor: pointer;
+}
+
+.click-hint {
+    color: white;
+    font-size: 24px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 1s ease forwards;
+    animation-delay: 0.5s;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 点击闪光效果 */
+.click-flash {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10001;
+    animation: flashExpand 0.8s ease-out forwards;
+}
+
+@keyframes flashExpand {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 0.8;
+    }
+    100% {
+        width: 300vh;
+        height: 300vh;
+        opacity: 0;
+    }
+}
+
+.background-image {
+    position: relative;
+    overflow: hidden;
+}
+
+.bg-bottom {
+    width: 100%;
+    height: auto;
+}
+
+.bg-above {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scale(0.4); /* 缩小为60% */
+    animation: slide 2.5s infinite alternate; /* 加快动画速度为2.5秒 */
+}
+
+@keyframes slide {
+    0% {
+        top: 100px;
+    }
+    100% {
+        top: 10px; /* 增大移动幅度到80px */
+    }
+}
+
+/* 可视化覆盖层样式 */
+#visualization-overlay {
+    position: absolute; /* 相对于 #fifth-page 定位 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500; /* 确保在第五页内容之上 */
+    display: none; /* 默认隐藏 */
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* 激活状态 */
+#fifth-page.visualization-active #visualization-overlay {
+    display: flex; /* 显示覆盖层 */
+}
+
+/* 模糊背景 */
+#visualization-overlay .blur-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(15px); /* 背景高斯模糊 */
+    -webkit-backdrop-filter: blur(15px);
+    background-color: rgba(0, 0, 0, 0.4); /* 可选：轻微变暗 */
+    z-index: 1;
+}
+
+/* 底部加载视频 */
+#visualization-overlay #load-video {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    max-height: 100%; /* 修改为100%以确保视频可见 */
+    object-fit: cover;
+    z-index: 3; /* 确保在背景上方但在窗口下方 */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#fifth-page.visualization-active #load-video {
+    opacity: 1;
+}
+
+/* 窗口容器 */
+#visualization-overlay .window-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 90%; /* 增加宽度 */
+    max-width: 800px; /* 增加最大宽度 */
+    z-index: 4; /* 确保在视频上方 */
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    animation: window-appear 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards 0.2s;
+}
+
+#fifth-page.visualization-active .window-container {
+   /* 动画在激活时播放 */
+}
+
+@keyframes window-appear {
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 窗口图片 */
+#visualization-overlay #window-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    position: relative;
+    z-index: 10; /* 确保窗口图片在最上层 */
+}
+
+/* 嵌入UI的占位符/容器 */
+#visualization-overlay #embedded-ui-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 75%; /* 稍微增大高度 */
+    max-width: 600px;
+    max-height: 500px;
+    z-index: 11; /* 确保在窗口图片下方 */
+}
+
+/* 调整移动过来的 .dream-image-container 样式 */
+#visualization-overlay .dream-image-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; /* 填充占位符 */
+    height: 100%; /* 填充占位符 */
+    z-index: inherit; /* 使用占位符的 z-index */
+    /* 可能需要重置或调整原有的 margin/padding/定位 */
+    margin: 0;
+    display: flex; /* 确保内部元素正常显示 */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: transparent; /* 确保背景透明 */
+}
+
+#visualization-overlay .dream-image-container .image-loading,
+#visualization-overlay .dream-image-container .generated-image,
+#visualization-overlay .dream-image-container .error-message,
+#visualization-overlay .dream-image-container .info-message,
+#visualization-overlay .dream-image-container .check-task-btn,
+#visualization-overlay .dream-image-container .debug-btn {
+    opacity: 1;
+    visibility: visible;
+    display: block;
+}
+
+#visualization-overlay .dream-image-container .image-loading.active,
+#visualization-overlay .dream-image-container .generated-image.active {
+    display: flex;
+}
+
+/* 关闭按钮 */
+#visualization-overlay #close-visualization-btn {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    line-height: 38px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: scale(0.8);
+    animation: close-btn-appear 0.5s ease forwards 1s; /* 延迟出现 */
+}
+
+#visualization-overlay #close-visualization-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+}
+
+@keyframes close-btn-appear {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

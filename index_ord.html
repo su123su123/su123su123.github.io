@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梦境搜索</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style_add.css">
+    <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+</head>
+<body>
+    <audio id="background-music" loop>
+        <source src="audio/bg.mp3" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+    <script>
+        // 自动播放音频并确保有声音（不静音）
+        window.addEventListener('DOMContentLoaded', function() {
+            var audio = document.getElementById('background-music');
+            // 取消静音
+            audio.muted = false;
+            // 处理自动播放策略
+            var playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(function(error) {
+                    // 用户未与页面交互时，自动播放可能会失败
+                    // 可以在用户点击任意地方时再次尝试播放
+                    document.body.addEventListener('click', function tryPlayOnce() {
+                        audio.play();
+                        document.body.removeEventListener('click', tryPlayOnce);
+                    });
+                });
+            }
+        });
+    </script>
+
+    <!-- 新增的开场动画部分 -->
+    <div id="intro-container" class="intro-active">
+        <video id="intro-video" src="images/opener.mp4" autoplay muted playsinline></video>
+        <div id="intro-overlay">
+            <div class="click-hint">点击屏幕继续</div>
+        </div>
+    </div>
+    
+    <div class="page-scroll-container">
+        <!-- 第一页 -->
+        <section class="page" id="first-page">
+            <div class="centered-button">
+                <button class="dream-journey-btn">开启梦旅</button>
+            </div>
+        </section>
+
+        <!-- 新插入的第二页 -->
+        <section class="page sec_page" id="new-second-page">
+            <video class="sec-bg-video" src="images/sec_page/bg.mov" autoplay loop muted playsinline></video>
+            <div class="sec-content">
+                <div class="sec-left">
+                    <img src="images/sec_page/slogan.png" alt="slogan" class="sec-img sec-slogan">
+                    <img src="images/sec_page/title.png" alt="title" class="sec-img sec-title">
+                    <img src="images/sec_page/txt.png" alt="txt" class="sec-img sec-txt">
+                </div>
+                <div class="sec-right">
+                    <img src="images/sec_page/hudie.png" alt="hudie" class="sec-img sec-hudie">
+                </div>
+            </div>
+            <div class="scroll-prompt">
+                <div class="prompt-text" style="font-size: 28px;" >滑动解梦</div>
+                <div class="prompt-arrows">
+                    <span style="font-size: 28px;">ˇ</span>
+                    <span style="font-size: 28px;">ˇ</span>
+                    <span style="font-size: 28px;">ˇ</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 原来的第二页，现在是第三页 -->
+        <section class="page trd_page" id="third-page">
+            <!-- 背景视频 -->
+            <video class="third-bg-video" src="images/third_page/bg.mov" autoplay loop muted playsinline></video>
+            <div class="bubble-bg" id="bubble-bg"></div>
+            <!-- 精灵及对话框和灯光元素 -->
+            <div class="trd-sprite">
+                <img src="images/third_page/spirit.png" class="spirit" alt="spirit">
+                <img src="images/third_page/dialog.png" class="dialog" alt="dialog">
+                <img src="images/third_page/light.png" class="light" alt="light">
+            </div>
+            <div class="page-container">
+
+
+                <!-- Hidden Panels for Hover Effect -->
+                <div id="panel-mengzhi" class="hover-panel">
+                    <h2>梦织界面</h2>
+                    <p>这里是梦织相关的内容...</p>
+                </div>
+                <div id="panel-mengying" class="hover-panel">
+                    <h2>梦影界面</h2>
+                    <p>这里是梦影相关的内容...</p>
+                </div>
+                <div id="panel-mengjie" class="hover-panel">
+                    <h2>梦解界面</h2>
+                    <p>这里是梦解相关的内容...</p>
+                </div>
+
+
+                <main>
+                    <div class="search-container">
+                        <input type="text" id="dream-input" placeholder="输入梦境">
+                        <button class="search-button" id="search-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="result-container" class="result-cards-hidden">
+                        <div class="result-card" id="card-theme">
+                            <h3>潜意识主题</h3>
+                            <p></p>
+                        </div>
+                        <div class="result-card" id="card-emotion">
+                            <h3>情绪分析</h3>
+                            <p></p>
+                        </div>
+                        <div class="result-card" id="card-advice">
+                            <h3>疗愈建议</h3>
+                            <p></p>
+                        </div>
+                    </div>
+
+                </main>
+
+                <div id="bubble-container">
+                    <!-- Bubbles will be generated here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- 第五页 -->
+        <section class="page fifth-page" id="fifth-page">
+            <div class="fifth-flex">
+                <div class="fifth-left">
+                    <video class="fifth-left-video" autoplay loop muted>
+                        <source src="images/fifth_page/left.mov" type="video/mp4">
+                    </video>
+                    <div class="dream-image-container">
+                        <div class="image-loading">
+                            <div class="loading-spinner"></div>
+                            <p>梦境生成中...</p>
+                            <div class="progress-container" style="width: 80%; background-color: #555; border-radius: 5px; overflow: hidden; margin-top: 10px; height: 10px;">
+                              <div class="progress-bar" style="width: 0%; height: 100%; background-color: #74c0fc; transition: width 0.5s ease;"></div>
+                            </div>
+                            <p class="progress-text" style="margin-top: 5px; font-size: 14px;"></p>
+                            <p class="error-count" style="margin-top: 5px; font-size: 12px; color: #ff6b6b;"></p>
+                        </div>
+                        <div class="generated-image">
+                            <img src="" alt="生成的梦境图像">
+                        </div>
+                        <div class="info-message" style="display: none;"></div>
+                        <div class="error-message" style="display: none;"></div>
+                        <button class="check-task-btn" style="display: none;">查看任务</button>
+                        <button class="debug-btn" style="display: none;">调试信息</button>
+                    </div>
+                    <div class="dream-image-mask"></div>
+                </div>
+                <div class="fifth-right">
+                    <div class="fifth-right-texts">
+                        <img class="fifth-slogan" src="images/fifth_page/slogan.png" alt="Slogan">
+                        <img class="fifth-title" src="images/fifth_page/title.png" alt="Title">
+                        <img class="fifth-txt" src="images/fifth_page/txt.png" alt="Description">
+                    </div>
+                    <button class="visual-dream-btn">可视梦境</button>
+                    <img class="fifth-right-img" src="images/fifth_page/example.png" alt="Example Image">
+                </div>
+            </div>
+            <!-- 新增的可视化覆盖层 -->
+            <div id="visualization-overlay">
+                <div class="blur-background"></div>
+                <video id="load-video" loop muted playsinline>
+                    <source src="images/six_page/load.mov" type="video/quicktime">
+                    <source src="images/six_page/load.mp4" type="video/mp4">
+                    您的浏览器不支持视频标签。
+                </video>
+                <div class="window-container">
+                     <img id="window-image" src="images/six_page/window.png" alt="窗口">
+                     <!-- 生图UI将移动到这里 -->
+                     <div id="embedded-ui-placeholder"></div>
+                </div>
+                <button id="close-visualization-btn">&times;</button>
+            </div>
+        </section>
+
+
+        <!-- 最后页面 -->
+        <div id="last-page" class="page">
+            <div class="background-image">
+                <img src="images/end_page/bg.png" alt="底图" class="bg-bottom">
+                <img src="images/end_page/bg_above.png" alt="上层图" class="bg-above">
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script src="script_add.js"></script>
+
+    <script>
+      // Lenis smooth scrolling
+      const lenis = new Lenis()
+      function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
+      requestAnimationFrame(raf)
+
+      // Observe sec_page entry/exit to toggle animations
+      const pagesToObserve = [
+        document.getElementById('new-second-page'),
+        document.getElementById('third-page')
+      ]
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const el = entry.target
+          if (entry.isIntersecting) el.classList.add('animate')
+          else el.classList.remove('animate')
+        })
+      }, { threshold: 0.5 })
+      pagesToObserve.forEach(page => io.observe(page));
+
+      // 点击输入框时隐藏背景视频，使用静态背景
+      const trdPage = document.querySelector('.trd_page');
+      const dreamInput = document.getElementById('dream-input');
+      dreamInput.addEventListener('focus', () => trdPage.classList.add('no-video'));
+      dreamInput.addEventListener('blur', () => trdPage.classList.remove('no-video'));
+    </script>
+  </body>
+</html>

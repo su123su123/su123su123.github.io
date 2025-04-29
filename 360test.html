@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360度视频测试</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+        #container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        #loadingMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 20px;
+            background-color: rgba(0,0,0,0.7);
+            padding: 15px 30px;
+            border-radius: 5px;
+            z-index: 20;
+        }
+        #errorMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 20px;
+            background-color: rgba(255,0,0,0.7);
+            padding: 15px 30px;
+            border-radius: 5px;
+            z-index: 20;
+            display: none;
+        }
+        #videoInfo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 14px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 10;
+            text-align: right;
+            pointer-events: none;
+            max-width: 300px;
+            transition: opacity 2s;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loadingMessage">正在加载视频播放器，请稍候...</div>
+        <div id="errorMessage"></div>
+        <div id="videoInfo">视频：示例360视频</div>
+        <div id="instructions" class="instructions">拖动屏幕或使用鼠标来环顾四周<br>使用按钮切换不同视频</div>
+        <div class="controls">
+            <button id="playButton">播放</button>
+            <button id="pauseButton">暂停</button>
+            <button id="switchVideo">切换视频源</button>
+            <button id="goodDreamBtn">好梦视频</button>
+            <button id="badDreamBtn">噩梦视频</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('container');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const playButton = document.getElementById('playButton');
+            const pauseButton = document.getElementById('pauseButton');
+            const switchVideo = document.getElementById('switchVideo');
+            const goodDreamBtn = document.getElementById('goodDreamBtn');
+            const badDreamBtn = document.getElementById('badDreamBtn');
+            const videoInfo = document.getElementById('videoInfo');
+            const instructions = document.getElementById('instructions');
+            
+            // 视频源列表
+            const videoSources = [
+                {
+                    name: '美好梦境 (good)',
+                    url: './360video/good_h264.mp4',
+                    type: 'good'
+                },
+                {
+                    name: '噩梦1 (bad1)',
+                    url: './360video/bad1_h264.mp4',
+                    type: 'bad'
+                },
+                {
+                    name: '噩梦2 (bad2)',
+                    url: './360video/bad2_h264.mp4',
+                    type: 'bad'
+                },
+                {
+                    name: '噩梦3 (bad3)',
+                    url: './360video/bad3_h264.mp4',
+                    type: 'bad'
+                }
+            ];
+            
+            // 检查视频文件是否存在并获取文件信息
+            function checkVideoFileInfo(url) {
+                return new Promise((resolve, reject) => {
+                    // 尝试通过fetch API检查文件
+                    fetch(url, { method: 'HEAD' })
+                        .then(response => {
+                            if (response.ok) {
+                                // 获取文件类型
+                                const contentType = response.headers.get('content-type');
+                                const contentLength = response.headers.get('content-length');
+                                
+                                resolve({
+                                    exists: true,
+                                    contentType: contentType || 'unknown',
+                                    size: contentLength ? parseInt(contentLength) : 0
+                                });
+                            } else {
+                                reject(new Error(`文件不存在或无法访问: ${url} (状态码: ${response.status})`));
+                            }
+                        })
+                        .catch(error => {
+                            // 如果fetch失败，尝试使用XMLHttpRequest
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('HEAD', url, true);
+                            xhr.onload = function() {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    resolve({
+                                        exists: true,
+                                        contentType: xhr.getResponseHeader('content-type') || 'unknown',
+                                        size: parseInt(xhr.getResponseHeader('content-length') || '0')
+                                    });
+                                } else {
+                                    reject(new Error(`文件不存在或无法访问: ${url} (状态码: ${xhr.status})`));
+                                }
+                            };
+                            xhr.onerror = function() {
+                                reject(new Error(`网络请求错误: ${url}`));
+                            };
+                            xhr.send();
+                        });
+                });
+            }
+            
+            // Three.js变量
+            let camera, scene, renderer, video, texture, mesh;
+            let isUserInteracting = false;
+            let onPointerDownMouseX = 0, onPointerDownMouseY = 0;
+            let lon = 0, onPointerDownLon = 0;
+            let lat = 0, onPointerDownLat = 0;
+            let phi = 0, theta = 0;
+            
+            let currentVideoIndex = 0;
+            
+            // 初始化Three.js场景
+            function initScene() {
+                // 创建场景
+                scene = new THREE.Scene();
+                
+                // 创建相机
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+                camera.position.set(0, 0, 0.01);
+                
+                // 创建渲染器
+                renderer = new THREE.WebGLRenderer();
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                container.appendChild(renderer.domElement);
+                
+                // 监听窗口大小变化
+                window.addEventListener('resize', onWindowResize);
+                
+                // 添加用户交互监听器
+                container.addEventListener('pointerdown', onPointerDown);
+                container.addEventListener('pointermove', onPointerMove);
+                container.addEventListener('pointerup', onPointerUp);
+                
+                // 添加触摸事件支持
+                container.addEventListener('touchstart', onPointerDown);
+                container.addEventListener('touchmove', onPointerMove);
+                container.addEventListener('touchend', onPointerUp);
+                
+                // 加载默认视频
+                loadVideo(currentVideoIndex);
+                
+                // 2秒后淡出使用说明
+                setTimeout(() => {
+                    instructions.style.opacity = 0;
+                }, 5000);
+                
+                animate();
+            }
+            
+            // 加载视频
+            function loadVideo(videoIndex) {
+                currentVideoIndex = videoIndex;
+                const videoSource = videoSources[videoIndex];
+                
+                // 更新视频信息
+                videoInfo.textContent = '视频：' + videoSource.name;
+                
+                // 停止现有视频
+                if (video) {
+                    video.pause();
+                    video.removeAttribute('src');
+                    video.load();
+                    
+                    // 如果是直接显示的视频，移除它
+                    if (video.style && video.style.display === 'block') {
+                        if (video.parentNode) {
+                            video.parentNode.removeChild(video);
+                        }
+                    }
+                }
+                
+                // 移除现有网格
+                if (mesh) {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                }
+                
+                // 恢复渲染器显示
+                if (renderer) renderer.domElement.style.display = 'block';
+                
+                // 显示加载消息
+                loadingMessage.style.display = 'block';
+                loadingMessage.textContent = '正在加载视频: ' + videoSource.name;
+                errorMessage.style.display = 'none';
+                
+                // 首先尝试360视频加载方式
+                tryLoadWithVideoTypes(videoSource);
+                
+                // 如果5秒后仍未加载成功，尝试2D方式
+                setTimeout(() => {
+                    if (loadingMessage.style.display !== 'none') {
+                        console.log('360度加载超时，尝试2D模式');
+                        try2DVideoRendering(videoSource);
+                    }
+                }, 5000);
+            }
+            
+            // 尝试不同的视频MIME类型加载
+            function tryLoadWithVideoTypes(videoSource) {
+                // 先检查文件信息
+                loadingMessage.textContent = '正在加载视频...';
+                
+                // 使用fetch加载视频文件
+                fetch(videoSource.url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // 创建Blob URL
+                        const blobUrl = URL.createObjectURL(blob);
+                        console.log('创建Blob URL成功:', blobUrl);
+                        
+                        // 创建视频元素
+                        video = document.createElement('video');
+                        video.crossOrigin = 'anonymous';
+                        video.loop = true;
+                        video.playsInline = true;
+                        video.muted = true; // 先设为静音以提高自动播放成功率
+                        video.preload = 'auto';
+                        
+                        // 视频加载完成
+                        video.addEventListener('loadeddata', function onLoadedData() {
+                            console.log('视频数据已加载:', videoSource.name);
+                            loadingMessage.style.display = 'none';
+                            
+                            // 尝试不同的纹理映射选项
+                            if (tryMultipleTextureOptions(video, videoSource)) {
+                                // 尝试自动播放
+                                tryAutoPlay();
+                            } else {
+                                errorMessage.innerHTML = `创建视频纹理失败<br>
+                                    请确保视频是兼容的格式和分辨率`;
+                                errorMessage.style.display = 'block';
+                            }
+                            
+                            video.removeEventListener('loadeddata', onLoadedData);
+                        });
+                        
+                        // 视频加载错误处理
+                        video.addEventListener('error', function onVideoError(e) {
+                            console.error('视频加载错误:', video.error ? video.error.code : 'unknown');
+                            loadingMessage.style.display = 'none';
+                            
+                            // 尝试直接显示视频
+                            showDirectVideo(video, blobUrl);
+                            
+                            video.removeEventListener('error', onVideoError);
+                        });
+
+                        // 设置视频源为Blob URL
+                        video.src = blobUrl;
+                        video.load();
+                    })
+                    .catch(error => {
+                        console.error('获取视频失败:', error);
+                        loadingMessage.style.display = 'none';
+                        errorMessage.innerHTML = `获取视频失败: ${error.message}<br>
+                            当前使用file://协议打开网页可能受到浏览器安全限制<br>
+                            请使用Web服务器来访问这个页面，例如：http://localhost`;
+                        errorMessage.style.display = 'block';
+                        
+                        // 尝试使用直接方式显示视频
+                        try2DVideoRendering(videoSource);
+                    });
+            }
+            
+            // 尝试不同的视频格式和映射类型
+            function tryMultipleTextureOptions(video, videoSource) {
+                console.log('尝试不同的纹理映射选项');
+                
+                try {
+                    // 创建视频纹理（使用简单配置）
+                    texture = new THREE.VideoTexture(video);
+                    
+                    // 使用简化版本的配置方式
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    
+                    // 重要：不使用特殊映射方式
+                    // texture.mapping = THREE.EquirectangularReflectionMapping;
+                    
+                    console.log('使用基础纹理配置');
+                    
+                    // 创建球体几何体
+                    const geometry = new THREE.SphereGeometry(500, 60, 40);
+                    geometry.scale(-1, 1, 1); // 翻转球体，使纹理贴在内部
+                    
+                    // 创建材质
+                    const material = new THREE.MeshBasicMaterial({ map: texture });
+                    
+                    // 创建网格
+                    mesh = new THREE.Mesh(geometry, material);
+                    scene.add(mesh);
+                    
+                    return true;
+                } catch (e) {
+                    console.error('基础纹理配置失败:', e);
+                    return false;
+                }
+            }
+            
+            // 尝试自动播放视频
+            function tryAutoPlay() {
+                if (!video) return;
+                
+                // 尝试播放
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function() {
+                        console.log('自动播放成功');
+                        // 成功后取消静音
+                        setTimeout(() => {
+                            video.muted = false;
+                        }, 1000);
+                    }).catch(function(error) {
+                        console.warn('自动播放被阻止:', error);
+                        
+                        // 创建播放按钮
+                        const playButton = document.createElement('button');
+                        playButton.textContent = '点击播放';
+                        playButton.style.position = 'absolute';
+                        playButton.style.top = '50%';
+                        playButton.style.left = '50%';
+                        playButton.style.transform = 'translate(-50%, -50%)';
+                        playButton.style.zIndex = '2000';
+                        playButton.style.padding = '15px 30px';
+                        playButton.style.fontSize = '18px';
+                        playButton.style.backgroundColor = '#ff4081';
+                        playButton.style.color = 'white';
+                        playButton.style.border = 'none';
+                        playButton.style.borderRadius = '30px';
+                        playButton.style.cursor = 'pointer';
+                        
+                        playButton.onclick = function() {
+                            // 尝试用户交互后播放并取消静音
+                            video.muted = false;
+                            video.play().then(function() {
+                                playButton.remove();
+                            }).catch(function(error) {
+                                console.error('播放失败:', error);
+                                errorMessage.textContent = '播放失败，请重试或检查浏览器权限';
+                                errorMessage.style.display = 'block';
+                            });
+                        };
+                        
+                        document.body.appendChild(playButton);
+                    });
+                }
+            }
+            
+            // 响应窗口大小变化
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            // 鼠标按下事件
+            function onPointerDown(event) {
+                isUserInteracting = true;
+                
+                const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+                const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                if (clientX === undefined || clientY === undefined) return;
+                
+                onPointerDownMouseX = clientX;
+                onPointerDownMouseY = clientY;
+                
+                onPointerDownLon = lon;
+                onPointerDownLat = lat;
+                
+                // 防止触摸设备上的滚动
+                if (event.touches) {
+                    event.preventDefault();
+                }
+            }
+            
+            // 鼠标移动事件
+            function onPointerMove(event) {
+                if (isUserInteracting) {
+                    const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+                    const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+                    
+                    if (clientX === undefined || clientY === undefined) return;
+                    
+                    lon = (onPointerDownMouseX - clientX) * 0.1 + onPointerDownLon;
+                    lat = (clientY - onPointerDownMouseY) * 0.1 + onPointerDownLat;
+                    
+                    // 防止触摸设备上的滚动
+                    if (event.touches) {
+                        event.preventDefault();
+                    }
+                }
+            }
+            
+            // 鼠标释放事件
+            function onPointerUp() {
+                isUserInteracting = false;
+            }
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                update();
+            }
+            
+            // 更新相机视角
+            function update() {
+                if (!isUserInteracting) {
+                    // 可选：无交互时缓慢旋转
+                    // lon += 0.05;
+                }
+                
+                // 限制垂直视角，防止过度仰视或俯视
+                lat = Math.max(-85, Math.min(85, lat));
+                
+                phi = THREE.MathUtils.degToRad(90 - lat);
+                theta = THREE.MathUtils.degToRad(lon);
+                
+                const x = 500 * Math.sin(phi) * Math.cos(theta);
+                const y = 500 * Math.cos(phi);
+                const z = 500 * Math.sin(phi) * Math.sin(theta);
+                
+                camera.lookAt(x, y, z);
+                
+                renderer.render(scene, camera);
+            }
+            
+            // 获取特定类型的随机视频索引
+            function getRandomVideoIndexByType(type) {
+                const typeVideos = videoSources.filter(video => video.type === type);
+                if (typeVideos.length === 0) return 0;
+                
+                const randomTypeVideo = typeVideos[Math.floor(Math.random() * typeVideos.length)];
+                return videoSources.findIndex(video => video.url === randomTypeVideo.url);
+            }
+            
+            // 按钮事件
+            playButton.addEventListener('click', function() {
+                if (video) {
+                    video.play().catch(e => {
+                        console.error('播放失败:', e);
+                    });
+                }
+            });
+            
+            pauseButton.addEventListener('click', function() {
+                if (video) {
+                    video.pause();
+                }
+            });
+            
+            switchVideo.addEventListener('click', function() {
+                const nextIndex = (currentVideoIndex + 1) % videoSources.length;
+                loadVideo(nextIndex);
+            });
+            
+            goodDreamBtn.addEventListener('click', function() {
+                // 加载好梦视频（通常是第一个）
+                const goodIndex = videoSources.findIndex(video => video.type === 'good');
+                loadVideo(goodIndex >= 0 ? goodIndex : 0);
+            });
+            
+            badDreamBtn.addEventListener('click', function() {
+                // 随机加载一个噩梦视频
+                const badIndex = getRandomVideoIndexByType('bad');
+                loadVideo(badIndex);
+            });
+            
+            // 初始化时检查所有视频文件
+            function checkAllVideos() {
+                loadingMessage.textContent = '正在检查所有视频文件...';
+                
+                const checkPromises = videoSources.map(source => {
+                    return checkVideoFileInfo(source.url)
+                        .then(() => {
+                            console.log(`视频文件存在: ${source.url}`);
+                            return { url: source.url, exists: true };
+                        })
+                        .catch(error => {
+                            console.warn(`视频文件检查失败: ${source.url}`, error);
+                            return { url: source.url, exists: false };
+                        });
+                });
+                
+                Promise.all(checkPromises).then(results => {
+                    const missingVideos = results.filter(result => !result.exists);
+                    
+                    if (missingVideos.length > 0) {
+                        console.warn('以下视频文件不存在或无法访问:', missingVideos.map(v => v.url).join(', '));
+                        
+                        // 尝试修复视频路径
+                        let fixed = false;
+                        
+                        // 检查是否需要调整路径
+                        const testPath = './360video/good.mp4';
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('HEAD', testPath, true);
+                        xhr.onload = function() {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                // 路径需要调整，更新所有视频路径
+                                videoSources.forEach(source => {
+                                    const filename = source.url.split('/').pop();
+                                    source.url = `./360video/${filename}`;
+                                });
+                                console.log('视频路径已调整为相对路径 ./360video/');
+                                fixed = true;
+                            } else {
+                                console.warn('尝试修复路径失败');
+                            }
+                            
+                            // 加载默认视频
+                            loadVideo(currentVideoIndex);
+                        };
+                        xhr.onerror = function() {
+                            console.warn('尝试修复路径失败 (网络错误)');
+                            loadVideo(currentVideoIndex);
+                        };
+                        xhr.send();
+                    } else {
+                        // 所有视频都存在，直接加载默认视频
+                        loadVideo(currentVideoIndex);
+                    }
+                });
+            }
+
+            // 初始化场景
+            initScene();
+            
+            // 添加说明文字
+            // 检查是否使用file协议
+            if (window.location.protocol === 'file:') {
+                const warning = document.createElement('div');
+                warning.style.position = 'absolute';
+                warning.style.top = '10px';
+                warning.style.left = '10px';
+                warning.style.backgroundColor = 'rgba(255,255,0,0.7)';
+                warning.style.color = 'black';
+                warning.style.padding = '10px';
+                warning.style.borderRadius = '5px';
+                warning.style.zIndex = '9999';
+                warning.innerHTML = `警告：您正在使用file://协议直接打开HTML文件<br>
+                    这可能导致视频无法加载（CORS错误）<br>
+                    建议使用Web服务器来访问此页面，例如：<br>
+                    1. 安装Node.js并运行：npm install -g http-server<br>
+                    2. 然后在项目目录运行：http-server<br>
+                    3. 访问：http://localhost:8080/360test.html`;
+                document.body.appendChild(warning);
+            }
+            
+            // 检查并加载视频文件
+            checkAllVideos();
+
+            // 尝试使用平面2D方式渲染视频（非360度方式）
+            function try2DVideoRendering(videoSource) {
+                console.log('尝试使用平面2D方式渲染视频');
+                loadingMessage.textContent = '尝试使用2D方式加载视频...';
+                
+                // 使用fetch加载视频文件
+                fetch(videoSource.url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // 创建Blob URL
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        // 创建视频元素
+                        video = document.createElement('video');
+                        video.crossOrigin = 'anonymous';
+                        video.loop = true;
+                        video.playsInline = true;
+                        video.muted = true; // 先设为静音以提高自动播放成功率
+                        video.controls = true; // 添加控制条
+                        video.style.display = 'none'; // 隐藏原始视频元素
+                        video.style.width = '100%';
+                        video.style.height = '100%';
+                        document.body.appendChild(video);
+                        
+                        // 视频加载完成
+                        video.addEventListener('loadeddata', function onLoadedData() {
+                            console.log('视频数据已加载:', videoSource.name);
+                            loadingMessage.style.display = 'none';
+                            
+                            try {
+                                // 创建简单的平面几何体
+                                const planeWidth = 800;
+                                const planeHeight = 500;
+                                const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+                                
+                                // 创建视频纹理
+                                texture = new THREE.VideoTexture(video);
+                                texture.minFilter = THREE.LinearFilter;
+                                texture.magFilter = THREE.LinearFilter;
+                                
+                                // 创建材质
+                                const material = new THREE.MeshBasicMaterial({ 
+                                    map: texture,
+                                    side: THREE.DoubleSide
+                                });
+                                
+                                // 创建网格
+                                mesh = new THREE.Mesh(geometry, material);
+                                mesh.position.set(0, 0, -600); // 放置在相机前方
+                                scene.add(mesh);
+                                
+                                // 尝试自动播放
+                                tryAutoPlay();
+                                
+                            } catch (e) {
+                                console.error('创建2D视频渲染失败:', e);
+                                // 如果3D渲染失败，直接显示HTML5视频元素
+                                showDirectVideo(video, blobUrl);
+                            }
+                            
+                            video.removeEventListener('loadeddata', onLoadedData);
+                        });
+                        
+                        // 视频加载错误处理
+                        video.addEventListener('error', function onVideoError(e) {
+                            console.error('视频加载错误:', video.error ? video.error.code : 'unknown');
+                            loadingMessage.style.display = 'none';
+                            
+                            // 尝试直接显示视频
+                            showDirectVideo(video, blobUrl);
+                            
+                            video.removeEventListener('error', onVideoError);
+                        });
+                        
+                        // 设置视频源为Blob URL
+                        video.src = blobUrl;
+                        video.load();
+                    })
+                    .catch(error => {
+                        console.error('获取视频失败:', error);
+                        loadingMessage.style.display = 'none';
+                        errorMessage.innerHTML = `获取视频失败: ${error.message}<br>
+                            请使用Web服务器来访问这个页面，不要直接打开HTML文件`;
+                        errorMessage.style.display = 'block';
+                    });
+            }
+            
+            // 直接显示HTML5视频元素（最后的兼容方案）
+            function showDirectVideo(videoElement, blobUrl) {
+                // 隐藏Three.js渲染器
+                if (renderer) renderer.domElement.style.display = 'none';
+                
+                // 如果提供了blobUrl，使用它
+                if (blobUrl && !videoElement.src) {
+                    videoElement.src = blobUrl;
+                }
+                
+                // 显示直接的视频元素
+                videoElement.style.display = 'block';
+                videoElement.style.position = 'absolute';
+                videoElement.style.top = '50%';
+                videoElement.style.left = '50%';
+                videoElement.style.transform = 'translate(-50%, -50%)';
+                videoElement.style.maxWidth = '90%';
+                videoElement.style.maxHeight = '80%';
+                videoElement.style.zIndex = '1000';
+                videoElement.muted = false;
+                videoElement.controls = true;
+                document.body.appendChild(videoElement);
+                
+                // 显示信息
+                errorMessage.innerHTML = `已切换到兼容模式（非360度视图）<br>
+                    您的浏览器似乎不支持360度视频渲染<br>
+                    当前正以普通视频方式播放`;
+                errorMessage.style.display = 'block';
+                
+                // 尝试播放
+                videoElement.play().catch(e => {
+                    console.warn('直接播放失败:', e);
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
