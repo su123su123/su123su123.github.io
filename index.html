@@ -7,8 +7,110 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="style_add.css">
     <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* 删除语音识别相关样式，已经移动到style_add.css */
+
+        /* 新增：模态框基础样式和可见性控制 */
+        #dream-detail-modal,
+        #emotion-radar-modal {
+            display: none; /* 初始隐藏 */
+            position: fixed; /* 固定定位 */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 半透明背景 */
+            z-index: 1000; /* 确保在顶层 */
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            visibility: hidden;
+        }
+
+        #dream-detail-modal.visible,
+        #emotion-radar-modal.visible {
+            display: flex; /* 设为 flex 以便居中 */
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 可以根据需要调整 modal-content-wrapper 的样式 */
+        .modal-content-wrapper {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto; /* 内容过多时可滚动 */
+            position: relative; /* 为了关闭按钮定位 */
+            color: #333; /* 设置文字颜色 */
+        }
+
+        #modal-close-btn,
+        #radar-modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        /* 修改：进一步增大模态框内容区域 */
+        #emotion-radar-modal .modal-content-wrapper {
+            background-color: #fff;
+            padding: 20px 30px 30px 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 900px; /* 大幅增大 */
+            width: 90%; /* 增加百分比 */
+            /* min-height: 550px; */ /* 移除最小高度限制 */
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ... (title, custom-legend 样式不变) ... */
+        .custom-chart-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px; /* 稍微减少间距 */
+            width: 100%;
+            flex-shrink: 0; /* 防止图例被压缩 */
+        }
+        /* ... (legend-color-box, legend-label 样式不变) ... */
+
+         /* 修改：调整 Canvas 容器，给它 ID 并让它填充 */
+         #radar-chart-container {
+            width: 100%;
+            flex-grow: 1; /* 占据所有可用垂直空间 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px; /* 保证一个最小绘图高度 */
+         }
+
+        #emotionRadarChart {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #radar-modal-message {
+           flex-grow: 1;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +213,7 @@
                                     <span>✨</span>小女孩的房间<span>✨</span>
                                 </a>
                                 <div class="enter-hint">按Enter键进入关卡</div>
+                                <div class="dream-hint" style="color: #fff; font-size: 18px;">往前翻以聆听你的梦语</div>
                             </div>
                         </div>
                         <div class="page-back">
@@ -128,6 +231,7 @@
                                     <span>🌸</span>樱花的世界<span>🌸</span>
                                 </a>
                                 <div class="enter-hint">按Enter键进入关卡</div>
+                                <div class="dream-hint" style="color: #fff; font-size: 18px;">往前翻以聆听你的梦语</div>
                             </div>
                         </div>
                         <div class="page-back">
@@ -145,6 +249,7 @@
                                     <span>🍬</span>糖果的天地<span>🍬</span>
                                 </a>
                                 <div class="enter-hint">按Enter键进入关卡</div>
+                                <div class="dream-hint" style="color: #fff; font-size: 18px;">往前翻以聆听你的梦语</div>
                             </div>
                         </div>
                         <div class="page-back">
@@ -203,6 +308,10 @@
         <section class="page" id="first-page">
             <div class="centered-button">
                 <button class="dream-journey-btn">开启梦旅</button>
+            </div>
+            <!-- 新增提示信息 -->
+            <div id="dream-hint" style="position: absolute; left: 10px; top: 20px; color: #fff; font-size: 500px; opacity: 1; transition: opacity 0.5s;">
+                往前翻以聆听你的梦语
             </div>
         </section>
 
@@ -270,17 +379,28 @@
                     </div>
 
                     <div id="result-container" class="result-cards-hidden">
-                        <div class="result-card" id="card-theme">
+                        <div class="result-card clickable" id="card-theme" data-title="潜意识主题解读">
                             <h3>潜意识主题</h3>
                             <p></p>
+                            <!-- 存储详细信息 -->
                         </div>
-                        <div class="result-card" id="card-emotion">
+                        <div class="result-card clickable" id="card-emotion" data-title="情绪分析详情">
                             <h3>情绪分析</h3>
                             <p></p>
+                            <!-- 存储详细信息 -->
                         </div>
-                        <div class="result-card" id="card-advice">
+                        <div class="result-card clickable" id="card-advice" data-title="疗愈建议详解">
                             <h3>疗愈建议</h3>
                             <p></p>
+                            <!-- 存储详细信息 -->
+                        </div>
+                        <!-- 新增的情绪图谱卡片 -->
+                        <div class="result-card clickable" id="card-emotion-radar">
+                            <h3>情绪图谱可视化</h3>
+                            <div class="radar-content">
+                                <!-- 这里将显示加载状态或生成的雷达图 -->
+                                <p>点击生成</p>
+                            </div>
                         </div>
                     </div>
 
@@ -396,6 +516,8 @@
         const coverImage = document.getElementById('cover-image');
         const unlockSound = document.getElementById('unlock-sound');
         const magicPhrase = "阿拉霍洞开"; // 解锁咒语
+        let isRecognitionActive = false; // 新增：识别是否活动标志
+        let isUnlocked = false; // 新增：是否已解锁标志
         
         // 检查浏览器是否支持语音识别
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -417,12 +539,26 @@
         }, 500); // 延迟半秒启动，确保页面完全加载
         
         function startVoiceRecognition() {
-            recognition.start();
-            listeningIndicator.style.display = 'flex';
-            recognitionResult.textContent = "正在聆听...";
+            // 防止重复启动
+            if (isRecognitionActive || isUnlocked) {
+                console.log('Recognition start blocked: already active or unlocked.');
+                return;
+            }
+            try {
+                isRecognitionActive = true; // 标记为活动
+                recognition.start();
+                listeningIndicator.style.display = 'flex';
+                recognitionResult.textContent = "正在聆听...";
+                console.log('Recognition started.');
+            } catch (e) {
+                isRecognitionActive = false; // 启动失败
+                console.error("无法启动语音识别:", e);
+                recognitionResult.textContent = "启动语音识别失败。";
+            }
         }
         
         recognition.onresult = function(event) {
+            isRecognitionActive = false; // 收到结果，设为非活动
             const transcript = event.results[0][0].transcript.trim();
             recognitionResult.textContent = `您说: "${transcript}"`;
             
@@ -440,24 +576,44 @@
         };
         
         recognition.onerror = function(event) {
+            isRecognitionActive = false; // 出错，设为非活动
             console.log("语音识别错误:", event.error);
-            // 出错后重新开始识别
-            if (event.error !== 'aborted') {
+
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                // 权限被拒绝或服务不可用，显示错误且不再尝试
+                recognitionResult.textContent = "无法访问麦克风。请检查浏览器权限设置。";
+                listeningIndicator.style.display = 'none';
+                // 可以在这里添加更明显的UI提示
+            } else if (event.error !== 'aborted' && !isUnlocked) {
+                 // 其他错误 (非用户中止且未解锁时)，稍后尝试重启
+                recognitionResult.textContent = "识别出错，请稍候重试... (" + event.error + ")";
                 setTimeout(function() {
-                    recognitionResult.textContent = "请重新说出咒语";
-                    setTimeout(startVoiceRecognition, 1000);
-                }, 1000);
+                    // 再次检查是否已解锁，避免解锁后仍尝试重启
+                    if (!isUnlocked) {
+                       startVoiceRecognition();
+                    }
+                }, 2000); // 延长重试间隔
             }
         };
         
         recognition.onend = function() {
-            // 如果不是因为识别到正确咒语而结束的，就自动重新开始
-            if (voiceUnlockOverlay.style.display !== 'none' && !recognitionResult.textContent.includes("咒语正确")) {
-                setTimeout(startVoiceRecognition, 300);
+            const wasActive = isRecognitionActive; // 记录结束前的状态
+            isRecognitionActive = false; // 识别结束
+            console.log('Recognition ended.');
+            // 只有在非解锁状态，且识别是意外结束（不是收到结果或明确错误处理）时才自动重启
+            if (!isUnlocked && wasActive && !recognitionResult.textContent.includes("咒语正确")) {
+                 console.log('Recognition ended unexpectedly, restarting...');
+                // 增加一个短暂延迟再重启，给浏览器一点时间
+                setTimeout(startVoiceRecognition, 500);
             }
         };
         
         function unlockCover() {
+            isUnlocked = true; // 设置解锁标志
+            if (isRecognitionActive) {
+                recognition.abort(); // 如果还在识别，中止它
+                 isRecognitionActive = false;
+            }
             // 播放解锁音效
             unlockSound.play();
             
@@ -679,6 +835,34 @@
         });
     </script>
     <!-- 目录介绍交互逻辑结束 -->
+
+    <!-- 新增：详细解梦模态框 -->
+    <div id="dream-detail-modal">
+        <div class="modal-content-wrapper">
+            <button id="modal-close-btn">&times;</button>
+            <h2 id="modal-title">详细解读</h2>
+            <p id="modal-detail-text">这里是详细的解梦内容...</p>
+        </div>
+    </div>
+    <!-- 模态框结束 -->
+
+    <!-- 新增：情绪雷达图模态框 -->
+    <div id="emotion-radar-modal">
+        <div class="modal-content-wrapper">
+            <button id="radar-modal-close-btn">&times;</button>
+            <h2 id="radar-modal-title">情绪图谱</h2>
+            <div class="custom-chart-legend" style="display: none;">
+                <span class="legend-color-box"></span>
+                <span class="legend-label">梦境情绪强度</span>
+            </div>
+            <!-- 修改：给 Canvas 的容器加上 ID -->
+            <div id="radar-chart-container">
+                 <canvas id="emotionRadarChart"></canvas>
+            </div>
+             <p id="radar-modal-message" style="text-align: center; margin-top: 10px;"></p>
+        </div>
+    </div>
+    <!-- 雷达图模态框结束 -->
 
 </body>
 </html>

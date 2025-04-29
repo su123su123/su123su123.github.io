@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 页面翻转逻辑 - 向前翻页
-    function turnPageForward(e) { // 移除 pageIndex 参数
+    function turnPageForward(e) {
         const nextPageIndex = currentPage + 1;
         // 只能翻到下一页, 且不能超过总页数
         if (nextPageIndex >= pages.length) return;
@@ -63,9 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentPageElement = pages[currentPage];
             const currentFront = currentPageElement.querySelector('.page-front');
             if (currentFront) {
-                // 不再直接设置opacity为0，保留当前页面可见性
                 currentFront.style.transition = 'opacity 0.8s ease';
-                // 降低不透明度但不完全隐藏
                 currentFront.style.opacity = '0.99';
             }
         }
@@ -76,6 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
         pageToFlip.style.zIndex = '100'; // Temporarily raise z-index when flipped
         pageToFlip.classList.remove('return-flipped'); 
         currentPage = nextPageIndex;
+        
+        // 显示提示信息
+        const dreamHint = document.getElementById('dream-hint');
+        if (currentPage > 0) {
+            dreamHint.style.opacity = '1'; // 显示提示
+        } else {
+            dreamHint.style.opacity = '0'; // 隐藏提示
+        }
         
         // --- Add centering class when book opens ---
         if (currentPage >= 0 && book) { 
@@ -100,14 +106,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const prevPage = pages[currentPage - 1];
                 const prevFront = prevPage.querySelector('.page-front');
                 if (prevFront) {
-                    prevFront.style.opacity = '1';
+                    prevFront.style.opacity = '0';
                 }
             }
         }, 1000);
+
+        // 修改后的透明度变化逻辑
+        updatePageOpacity('forward'); // 调用更新透明度的函数
     }
     
     // 页面翻转逻辑 - 向后翻页
     function turnPageBackward(e) { // 移除 pageIndex 参数
+        location.reload();
         // 只能回翻当前页
         if (currentPage < 0) return;
         
@@ -131,6 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         pageToUnflip.style.zIndex = initialZIndexes[pageToUnflip.id]; // Restore initial z-index
         
         currentPage = currentPage - 1;
+        
+        // 隐藏提示信息
+        const dreamHint = document.getElementById('dream-hint');
+        if (currentPage <= 0) {
+            dreamHint.style.opacity = '0'; // 隐藏提示
+        }
         
         // --- Remove centering class when back to cover ---
         if (currentPage === -1 && book) { 
@@ -157,6 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }, 1000);
+
+        // 修改后的透明度变化逻辑
+        updatePageOpacity('backward'); // 调用更新透明度的函数
     }
     
     // 创建翻页效果 (保持)
@@ -426,14 +445,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.nav-item');
     let hoverTimeout = null; // To manage delays for hover effects
 
+    // --- 新增：模态框相关元素 (移到此处声明) ---
+    const detailModal = document.getElementById('dream-detail-modal');
+    const detailModalTitle = document.getElementById('modal-title');
+    const detailModalText = document.getElementById('modal-detail-text');
+    const detailModalCloseBtn = document.getElementById('modal-close-btn');
+
+    const radarModal = document.getElementById('emotion-radar-modal');
+    const radarModalCloseBtn = document.getElementById('radar-modal-close-btn');
+    const radarCanvas = document.getElementById('emotionRadarChart');
+    const radarModalMessage = document.getElementById('radar-modal-message');
+    let emotionChartInstance = null; // 用于存储 Chart 实例
+
     // --- New Elements for Dream Search ---
     const dreamInput = document.getElementById('dream-input');
     const searchButton = document.getElementById('search-btn');
     const searchContainer = document.querySelector('.search-container');
     const resultContainer = document.getElementById('result-container');
-    const themeCardP = document.getElementById('card-theme')?.querySelector('p');
-    const emotionCardP = document.getElementById('card-emotion')?.querySelector('p');
-    const adviceCardP = document.getElementById('card-advice')?.querySelector('p');
+    const themeCard = document.getElementById('card-theme');
+    const emotionCard = document.getElementById('card-emotion');
+    const adviceCard = document.getElementById('card-advice');
+    const themeCardP = themeCard?.querySelector('p'); // Optional chaining
+    const emotionCardP = emotionCard?.querySelector('p'); // Optional chaining
+    const adviceCardP = adviceCard?.querySelector('p'); // Optional chaining
+    // 新增：情绪图谱卡片引用
+    const emotionRadarCard = document.getElementById('card-emotion-radar');
+    const emotionRadarContent = emotionRadarCard?.querySelector('.radar-content p'); // Optional chaining
 
     // --- Midjourney API 相关元素 ---
     const visualDreamBtn = document.querySelector('.visual-dream-btn');
@@ -452,16 +489,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoMessage = document.querySelector('.info-message');
 
     // --- API 密钥和 URL ---
-    const DEEPSEEK_API_KEY = 'sk-db09379b2da749ac80747244ba3e127c'; // DeepSeek API 密钥
+    const DEEPSEEK_API_KEY = 'sk-db09379b2da749ac80747244ba3e127c'; // 请替换为您的 API Key
     const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'; // DeepSeek API URL
     
     const MIDJOURNEY_API_KEY = 'sk-SzQWup7igqysKa0h796664F0D978409eAf34225b82050940'; // Midjourney API 密钥
     const MIDJOURNEY_API_URL = 'https://api.aiyiapi.com/mj-relax'; // 不包含模式后缀
     
-    // 存储梦境内容和分析结果
-    let currentDreamText = '';
-    let dreamAnalysisResult = null;
-    let currentDreamNature = 'bad'; // 存储梦境性质 ("good" or "bad"), 默认为 bad
+    // --- State Variables ---
+    let currentDreamText = ''; // To store the current dream text for other functions
+    let dreamAnalysisResult = null; // Store the full analysis result
+    let currentDreamNature = 'bad'; // Default to 'bad'
 
     // --- 可视化覆盖层逻辑 ---
     if (visualDreamBtn && visualizationOverlay && dreamImageContainer && embeddedUiPlaceholder && closeVisualizationBtn && loadVideo && fifthPage) {
@@ -678,8 +715,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchDreamAnalysis(dreamText) {
         // --- 保存当前梦境文本以便后续使用 ---
         currentDreamText = dreamText;
-        dreamAnalysisResult = null;
-        currentDreamNature = 'bad';
+        dreamAnalysisResult = null; // Reset previous result
+        currentDreamNature = 'bad'; // Reset nature
 
         // --- Show Loading State Immediately --- 
         searchButton.disabled = true; // Disable button during request
@@ -687,30 +724,62 @@ document.addEventListener('DOMContentLoaded', () => {
         searchContainer.classList.add('search-container-shifted'); // Move search up now
         resultContainer.classList.add('result-cards-visible'); // Show container now
 
-        themeCardP.textContent = '正在解读中...'; // Show loading in first card
-        emotionCardP.textContent = '...'; // Indicate loading in other cards
-        adviceCardP.textContent = '...'; // Indicate loading in other cards
+        if (themeCardP) themeCardP.textContent = '正在解读中...'; // Show loading in first card
+        if (emotionCardP) emotionCardP.textContent = '...'; // Indicate loading in other cards
+        if (adviceCardP) adviceCardP.textContent = '...'; // Indicate loading in other cards
+        if (emotionRadarContent) emotionRadarContent.textContent = '请先完成解梦'; // Reset radar card text
 
-        // --- 再次确认 Prompt，确保清晰要求 dream_nature --- 
+        // --- 清除旧的 data 属性和图表 ---
+        if(themeCard) delete themeCard.dataset.detail;
+        if(emotionCard) delete emotionCard.dataset.detail;
+        if(adviceCard) delete adviceCard.dataset.detail;
+        if (emotionChartInstance) {
+            emotionChartInstance.destroy();
+            emotionChartInstance = null;
+        }
+        if (radarModalMessage) radarModalMessage.textContent = '';
+
+
+        // --- 修改 Prompt: 要求情绪分数 ---
         const prompt = `
         请帮我解梦，我的梦境是："${dreamText}"
-        请根据梦境内容，分析并生成以下四项信息，并严格按照JSON格式返回，key分别为 theme_summary, emotion_analysis, healing_advice, dream_nature:
-        1.  潜意识主题 (theme_summary): 对梦境映射的潜意识主题进行分析，并用一句话精准总结梦境摘要。
-        2.  情绪分析 (emotion_analysis): 分析梦境中可能蕴含的主要情绪（例如：焦虑、孤独、压抑、开心等）。
-        3.  疗愈建议 (healing_advice): 给出简单的建议和疗愈方向（例如：一句安慰或温柔提醒）。
-        4.  梦境性质 (dream_nature): 根据心理学角度，判断这个梦是积极/治愈类的"好梦"，还是消极/有压力的"噩梦"。请严格只返回单词 "good" 或 "bad"。
+        请根据梦境内容，分析并生成以下信息，并严格按照JSON格式返回。
+        对于 theme, emotion, healing_advice 这三项，请分别提供 summary (简短总结，用于卡片显示) 和 detail (详细解读，用于点击展开)。
+        对于 dream_nature，请根据心理学角度判断这个梦是积极/治愈类的"好梦"，还是消极/有压力的"噩梦"，并只返回单词 "good" 或 "bad"。
+        对于 emotion_scores，请为以下六种情绪打分（0到10分，0代表完全没有，10代表极其强烈）：喜悦(joy), 平静(calm), 焦虑(anxiety), 恐惧(fear), 悲伤(sadness), 愤怒(anger)。
+
+        key 如下:
+        - theme_summary
+        - theme_detail
+        - emotion_summary
+        - emotion_detail
+        - healing_advice_summary
+        - healing_advice_detail
+        - dream_nature
+        - emotion_scores (一个包含 joy, calm, anxiety, fear, sadness, anger 六个 key 及其对应分数的对象)
 
         返回的JSON格式示例：
         {
           "theme_summary": "梦境暗示了对考试的焦虑，核心内容是在考场迷路。",
-          "emotion_analysis": "梦境中可能体现的主要情绪是焦虑和迷茫。",
-          "healing_advice": "尝试考前放松，给自己积极的心理暗示。",
-          "dream_nature": "bad"
+          "theme_detail": "（这里是更详细的潜意识主题分析...）",
+          "emotion_summary": "主要情绪是焦虑和迷茫。",
+          "emotion_detail": "（这里是更详细的情绪分析...）",
+          "healing_advice_summary": "尝试考前放松，给自己积极暗示。",
+          "healing_advice_detail": "（这里是更详细的疗愈建议...）",
+          "dream_nature": "bad",
+          "emotion_scores": {
+            "joy": 1,
+            "calm": 3,
+            "anxiety": 8,
+            "fear": 6,
+            "sadness": 2,
+            "anger": 1
+          }
         }
         `;
 
         try {
-            console.log("发送解梦及性质分析请求给 DeepSeek");
+            console.log("发送解梦、性质及情绪分数分析请求给 DeepSeek");
             const response = await fetch(DEEPSEEK_API_URL, {
                 method: 'POST',
                 headers: {
@@ -721,23 +790,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     model: 'deepseek-chat',
                     messages: [{ role: 'user', content: prompt }],
                     stream: false
-                    // 移除 max_tokens 限制，确保完整 JSON 返回
                 })
             });
 
             if (!response.ok) {
                  const errorText = await response.text();
-                 console.error("DeepSeek 解梦 API 错误响应文本:", errorText);
-                throw new Error(`DeepSeek解梦API错误 (${response.status}): ${errorText.substring(0, 200)}`);
+                 console.error("DeepSeek API 错误响应文本:", errorText);
+                throw new Error(`DeepSeek API错误 (${response.status}): ${errorText.substring(0, 200)}`);
             }
 
             const data = await response.json();
-            console.log("DeepSeek 解梦响应数据:", JSON.stringify(data, null, 2));
+            console.log("DeepSeek 响应数据:", JSON.stringify(data, null, 2));
 
             let analysisResult = null;
             if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
                 let content = data.choices[0].message.content.trim();
-                // --- JSON 清理 --- 
                 if (content.startsWith("```json")) { content = content.substring(7); }
                 if (content.endsWith("```")) { content = content.substring(0, content.length - 3); }
                 content = content.trim();
@@ -745,113 +812,397 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     analysisResult = JSON.parse(content);
                     dreamAnalysisResult = analysisResult; // 保存完整分析结果
+                    console.log("Parsed Analysis Result:", dreamAnalysisResult); // 调试：打印完整解析结果
+                    // *** 调试：明确打印情绪分数 ***
+                    console.log("Emotion Scores from API:", analysisResult.emotion_scores);
                     
-                    // --- 严格检查并存储 dream_nature --- 
+                    // --- 存储 dream_nature ---
                     if (analysisResult.dream_nature && typeof analysisResult.dream_nature === 'string') {
                         const nature = analysisResult.dream_nature.trim().toLowerCase();
-                        if (nature === 'good') {
-                            currentDreamNature = 'good';
-                        } else if (nature === 'bad') {
-                            currentDreamNature = 'bad';
+                        currentDreamNature = (nature === 'good') ? 'good' : 'bad';
                         } else {
-                            console.warn(`DeepSeek 返回的 dream_nature 值 "${nature}" 不是 'good' 或 'bad'，默认为 bad`);
-                            currentDreamNature = 'bad';
-                        }
-                    } else {
                         console.warn("DeepSeek 返回结果中 dream_nature 字段无效或缺失，默认为 bad");
-                        currentDreamNature = 'bad'; // 缺失也默认为 bad
+                            currentDreamNature = 'bad';
                     }
                     console.log("存储的梦境性质:", currentDreamNature);
-                    // --- 结束检查 --- 
+
+                    // --- 存储详细信息到 data 属性 ---
+                    if (themeCard && analysisResult.theme_detail) {
+                        themeCard.dataset.detail = analysisResult.theme_detail;
+                        themeCard.dataset.title = "潜意识主题解读";
+                    }
+                    if (emotionCard && analysisResult.emotion_detail) {
+                        emotionCard.dataset.detail = analysisResult.emotion_detail;
+                        emotionCard.dataset.title = "情绪分析详情";
+                    }
+                    if (adviceCard && analysisResult.healing_advice_detail) {
+                        adviceCard.dataset.detail = analysisResult.healing_advice_detail;
+                        adviceCard.dataset.title = "疗愈建议详解";
+                    }
+                    // --- 更新图谱卡片状态 ---
+                     if (emotionRadarContent) {
+                        emotionRadarContent.textContent = (analysisResult.emotion_scores) ? '点击生成图谱' : '无法生成图谱';
+                     }
+
 
                 } catch (parseError) {
-                    console.error("解析 DeepSeek 解梦 JSON 失败:", parseError);
+                    console.error("解析 DeepSeek JSON 失败:", parseError);
                     console.error("原始 content:", content);
-                    themeCardP.textContent = '解析失败';
-                    emotionCardP.textContent = '无法读取模型返回结果。';
-                    adviceCardP.textContent = '';
-                    currentDreamNature = 'bad'; // 解析失败也默认为 bad
+                    if(themeCardP) themeCardP.textContent = '解析失败';
+                    if(emotionCardP) emotionCardP.textContent = '无法读取结果';
+                    if(adviceCardP) adviceCardP.textContent = '';
+                    if(emotionRadarContent) emotionRadarContent.textContent = '解析错误';
+                    currentDreamNature = 'bad';
+                    dreamAnalysisResult = null; // 清除可能部分解析的结果
                 }
             } else {
-                console.error('DeepSeek 响应格式不正确，缺少 choices 或 content。');
-                 themeCardP.textContent = '无有效回复';
-                 emotionCardP.textContent = ''; adviceCardP.textContent = '';
-                 currentDreamNature = 'bad'; // 响应格式错误也默认为 bad
+                console.error('DeepSeek 响应格式不正确。');
+                 if(themeCardP) themeCardP.textContent = '无有效回复';
+                 if(emotionCardP) emotionCardP.textContent = '';
+                 if(adviceCardP) adviceCardP.textContent = '';
+                 if(emotionRadarContent) emotionRadarContent.textContent = '无有效回复';
+                 currentDreamNature = 'bad';
+                 dreamAnalysisResult = null;
             }
 
-            // --- Update UI (只更新解梦文本) --- 
-            if (dreamAnalysisResult && dreamAnalysisResult.theme_summary && dreamAnalysisResult.emotion_analysis && dreamAnalysisResult.healing_advice) {
-                themeCardP.textContent = dreamAnalysisResult.theme_summary;
-                emotionCardP.textContent = dreamAnalysisResult.emotion_analysis;
-                adviceCardP.textContent = dreamAnalysisResult.healing_advice;
+            // --- 更新 UI (summary 部分) ---
+            if (dreamAnalysisResult) {
+                if(themeCardP) themeCardP.textContent = dreamAnalysisResult.theme_summary || '信息不完整';
+                // *** 修正：使用 emotion_summary ***
+                if(emotionCardP) emotionCardP.textContent = dreamAnalysisResult.emotion_summary || '信息不完整';
+                if(adviceCardP) adviceCardP.textContent = dreamAnalysisResult.healing_advice_summary || '';
             } else {
-                 // 如果上面已经处理过错误，这里可能不需要再次设置
-                 if (!themeCardP.textContent) themeCardP.textContent = '信息不完整';
-                 if (!emotionCardP.textContent) emotionCardP.textContent = '';
-                 if (!adviceCardP.textContent) adviceCardP.textContent = '';
+                 // Handle cases where analysis failed earlier
+                 if (themeCardP && (!themeCardP.textContent || themeCardP.textContent === '正在解读中...')) themeCardP.textContent = '获取失败';
+                 if (emotionCardP && (!emotionCardP.textContent || emotionCardP.textContent === '...')) emotionCardP.textContent = '获取失败';
+                 if (adviceCardP && (!adviceCardP.textContent || adviceCardP.textContent === '...')) adviceCardP.textContent = '';
+                 if (emotionRadarContent && (!emotionRadarContent.textContent || emotionRadarContent.textContent === '请先完成解梦')) emotionRadarContent.textContent = '获取失败';
             }
-            resultContainer.classList.add('result-cards-visible');
-            searchContainer.classList.add('search-container-shifted');
 
         } catch (error) {
-            console.error('请求 DeepSeek 解梦出错:', error);
-            themeCardP.textContent = '解梦失败';
-            emotionCardP.textContent = `错误: ${error.message}`; 
-            adviceCardP.textContent = '请检查网络或API密钥。';
-            resultContainer.classList.add('result-cards-visible');
-            searchContainer.classList.add('search-container-shifted');
-            currentDreamNature = 'bad'; // 出错也默认为 bad
+            console.error('请求 DeepSeek 出错:', error);
+            if(themeCardP) themeCardP.textContent = '解梦失败';
+            if(emotionCardP) emotionCardP.textContent = `错误: ${error.message.substring(0, 50)}...`;
+            if(adviceCardP) adviceCardP.textContent = '请检查网络或API。';
+            if(emotionRadarContent) emotionRadarContent.textContent = '请求错误';
+            currentDreamNature = 'bad';
+            dreamAnalysisResult = null; // 清除结果
         } finally {
              searchButton.disabled = false;
             searchButton.style.opacity = '1';
         }
     }
 
-    // --- Midjourney API 调用函数 ---
-    let imaginePollingInterval = null;
-    let upscalePollingInterval = null;
+    // --- Event Listener for Search Button ---
+    searchButton.addEventListener('click', () => {
+        const dreamText = dreamInput.value.trim();
+        if (dreamText) {
+            fetchDreamAnalysis(dreamText);
+            } else {
+            // Optionally provide feedback if input is empty
+            // e.g., shake the input box or show a small message
+            console.log("请输入梦境内容");
+        }
+    });
 
+    // --- Event Listener for Enter Key in Input ---
+    dreamInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent default form submission if applicable
+            searchButton.click(); // Trigger the search button click
+        }
+    });
+
+
+    // --- 新增：事件监听器 - 打开详细信息模态框 ---
+    function openDetailModal(event) {
+        console.log("Card clicked:", event.currentTarget.id); // 调试信息
+        const card = event.currentTarget;
+        const title = card.dataset.title || '详细信息';
+        const detail = card.dataset.detail;
+
+        console.log("Retrieved Title:", title);
+        console.log("Retrieved Detail:", detail); // 调试信息
+
+        if (!detail) {
+            console.warn("No detail found for card:", card.id);
+            // 可以选择弹出一个提示或轻微晃动卡片
+            alert('暂无详细信息。');
+            return; // 没有详情则不打开模态框
+        }
+
+        if (detailModal && detailModalTitle && detailModalText) {
+            detailModalTitle.textContent = title;
+            detailModalText.textContent = detail;
+            // 修改：使用 classList 控制可见性
+            // detailModal.style.display = 'flex';
+            detailModal.classList.add('visible');
+            console.log("Detail modal opened for:", card.id);
+        } else {
+            console.error("Detail modal elements not found!");
+        }
+    }
+
+    // --- 新增：事件监听器 - 关闭详细信息模态框 ---
+    function closeDetailModal() {
+        if (detailModal) {
+            // 修改：使用 classList 控制可见性
+            // detailModal.style.display = 'none';
+            detailModal.classList.remove('visible');
+            console.log("Detail modal closed.");
+        }
+    }
+
+    // --- 新增：事件监听器 - 打开情绪雷达图模态框 ---
+    function openRadarModal() {
+        console.log("Radar card clicked.");
+        if (!dreamAnalysisResult || !dreamAnalysisResult.emotion_scores) {
+            console.warn(`Cannot open radar modal: dreamAnalysisResult: ${!!dreamAnalysisResult}, emotion_scores: ${dreamAnalysisResult ? !!dreamAnalysisResult.emotion_scores : 'N/A'}`);
+            if(radarModalMessage) radarModalMessage.textContent = '请先成功进行解梦分析以获取情绪数据。';
+            if(radarModal) {
+                radarModal.classList.add('visible');
+                if(radarCanvas) radarCanvas.style.display = 'none';
+                // 确保自定义图例是隐藏的
+                const customLegend = radarModal.querySelector('.custom-chart-legend');
+                if (customLegend) customLegend.style.display = 'none';
+            }
+            return;
+        }
+        if (!radarCanvas || !radarModal) {
+             console.error("雷达图 Canvas 或模态框未找到！");
+             return;
+        }
+
+         if (radarModalMessage) radarModalMessage.textContent = '';
+         if(radarCanvas) radarCanvas.style.display = 'block';
+          // 显示自定义图例
+          const customLegend = radarModal.querySelector('.custom-chart-legend');
+          if (customLegend) customLegend.style.display = 'flex';
+
+
+        const scores = dreamAnalysisResult.emotion_scores;
+        console.log("Using scores for chart:", scores);
+        // 确认标签顺序与参考图一致 (Top: 喜悦, Top-Right: 平静, Bottom-Right: 焦虑, Bottom: 恐惧, Bottom-Left: 悲伤, Top-Left: 愤怒)
+        const labels = ['喜悦', '平静', '焦虑', '恐惧', '悲伤', '愤怒'];
+        const dataPoints = [
+            scores.joy ?? 0,
+            scores.calm ?? 0,
+            scores.anxiety ?? 0,
+            scores.fear ?? 0,
+            scores.sadness ?? 0,
+            scores.anger ?? 0
+        ];
+        console.log("Chart Labels:", labels);
+        console.log("Chart Data Points:", dataPoints);
+
+        // --- 销毁旧图表 ---
+        if (emotionChartInstance) {
+            console.log("Destroying previous chart instance.");
+            emotionChartInstance.destroy();
+            emotionChartInstance = null;
+        }
+
+        try {
+            console.log("Attempting to create new Chart...");
+            const ctx = radarCanvas.getContext('2d');
+            emotionChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        // label: '梦境情绪强度', // 使用自定义图例，这里不再需要
+                        data: dataPoints,
+                        fill: true,
+                        backgroundColor: 'rgba(137, 207, 240, 0.4)', // 浅蓝色填充 (LightSkyBlue with alpha)
+                        borderColor: 'rgb(70, 130, 180)',      // 较深的蓝色边框 (SteelBlue)
+                        pointBackgroundColor: 'rgb(70, 130, 180)', // 数据点颜色 (SteelBlue)
+                        pointBorderColor: '#fff',          // 数据点白色边框
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(70, 130, 180)',
+                        pointRadius: 4, // 数据点半径
+                        pointBorderWidth: 1, // 数据点边框宽度
+                        borderWidth: 1.5 // 雷达图区域边框宽度
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // 修改：解除宽高比限制
+                    elements: {
+                        line: {
+                            // borderWidth: 1.5 // 已在 dataset 中设置
+                        }
+                    },
+                    scales: {
+                        r: { // Radial Axis
+                            angleLines: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.1)' // 浅灰色角度线
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)' // 浅灰色网格线
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 8, // 坐标轴最大值为 8
+                             ticks: {
+                                 stepSize: 2,
+                                 display: true, // 显示刻度数字
+                                 backdropColor: 'rgba(255, 255, 255, 0)', // 刻度数字背景透明
+                                 color: '#666', // 刻度数字颜色
+                                 font: {
+                                     size: 10 // 刻度数字大小
+                                 },
+                                 // 自定义回调函数，只显示 2, 4, 6, 8
+                                 callback: function(value, index, values) {
+                                     if (value !== 0) { // 不显示 0
+                                         return value;
+                                     }
+                                     return ''; // 返回空字符串隐藏标签
+                                 }
+                             },
+                             pointLabels: { // 轴标签 (喜悦, 平静等)
+                                font: {
+                                    size: 15, // 增大轴标签字体
+                                    weight: 'normal' // 可选 'bold'
+                                 },
+                                 color: '#333'
+                             }
+                        }
+                    },
+                     plugins: {
+                        legend: {
+                            display: false // 禁用默认图例
+                        },
+                        tooltip: { // 可选：自定义提示框
+                            enabled: true // 启用/禁用鼠标悬停提示
+                        }
+                     }
+                }
+            });
+             console.log("New Chart instance created successfully:", emotionChartInstance);
+        } catch (chartError) {
+             console.error("Error creating Chart.js instance:", chartError);
+             if(radarModalMessage) radarModalMessage.textContent = '生成图表时出错，请检查控制台日志。';
+             if(radarCanvas) radarCanvas.style.display = 'none';
+             // 隐藏自定义图例
+             const customLegend = radarModal.querySelector('.custom-chart-legend');
+             if (customLegend) customLegend.style.display = 'none';
+             if(radarModal && !radarModal.classList.contains('visible')) {
+                 radarModal.classList.add('visible');
+             }
+             return;
+        }
+
+        // 如果图表创建成功，确保模态框可见
+        if(radarModal && !radarModal.classList.contains('visible')) {
+            radarModal.classList.add('visible');
+        }
+        console.log("Radar modal should be visible now with chart.");
+
+        // 新增：强制图表重绘尺寸
+        setTimeout(() => {
+            if (emotionChartInstance) {
+                emotionChartInstance.resize();
+                console.log('Chart resize forced.');
+            }
+        }, 100); // 延迟执行确保模态框已渲染
+    }
+
+    // --- 新增：事件监听器 - 关闭雷达图模态框 ---
+    function closeRadarModal() {
+        if (radarModal) {
+            // 修改：使用 classList 控制可见性
+            // radarModal.style.display = 'none';
+            radarModal.classList.remove('visible');
+            console.log("Radar modal closed.");
+        }
+    }
+
+
+    // --- 新增：绑定事件监听器 ---
+    if (themeCard) themeCard.addEventListener('click', openDetailModal);
+    if (emotionCard) emotionCard.addEventListener('click', openDetailModal);
+    if (adviceCard) adviceCard.addEventListener('click', openDetailModal);
+    if (detailModalCloseBtn) detailModalCloseBtn.addEventListener('click', closeDetailModal);
+    // Close detail modal if clicking outside the content
+    if (detailModal) {
+        detailModal.addEventListener('click', (event) => {
+            if (event.target === detailModal) { // Clicked on the overlay itself
+                closeDetailModal();
+            }
+        });
+    }
+
+    if (emotionRadarCard) emotionRadarCard.addEventListener('click', openRadarModal);
+    if (radarModalCloseBtn) radarModalCloseBtn.addEventListener('click', closeRadarModal);
+    // Close radar modal if clicking outside the content
+     if (radarModal) {
+        radarModal.addEventListener('click', (event) => {
+             if (event.target === radarModal) { // Clicked on the overlay itself
+                 closeRadarModal();
+            }
+        });
+    }
+
+
+// ... existing code ... (e.g., bubble generation, if any)
+// Make sure the rest of the script is preserved.
+// Example: Bubble generation might start here
+
+// 气泡生成代码 (如果 script.js 中有这部分，确保它在事件监听器之后)
+// ... (rest of the bubble generation code, if applicable) ...
+
+    // --- Midjourney API 相关代码开始 ---
+
+    // --- Midjourney 变量和 API 配置 ---
+    // const visualDreamBtn = document.querySelector('.visual-dream-btn'); // 注释掉重复声明，使用已有的
+    // const imageLoading = document.querySelector('.image-loading'); // 注释掉重复声明
+    // const generatedImage = document.querySelector('.generated-image'); // 注释掉重复声明
+    // const MIDJOURNEY_API_KEY = 'sk-SzQWup7igqysKa0h796664F0D978409eAf34225b82050940'; // 注释掉重复声明
+    // const MIDJOURNEY_API_URL = 'https://api.aiyiapi.com/mj-relax'; // 注释掉重复声明
+    let imaginePollingInterval = null; // 这个可能是新的，保留
+    let upscalePollingInterval = null; // 这个可能是新的，保留
+
+    // --- Midjourney API 调用函数 ---
     async function generateDreamImage() {
         // 清除可能存在的旧轮询
         clearInterval(imaginePollingInterval);
         clearInterval(upscalePollingInterval);
 
-        // 检查是否有梦境内容和分析结果
+        // 检查是否有梦境内容和分析结果 (依赖之前的 dreamAnalysisResult 和 currentDreamText)
         if (!currentDreamText || !dreamAnalysisResult) {
             alert('请先在第三页输入梦境并获取解析结果。');
-            // 滚动到第三页
-            document.getElementById('third-page').scrollIntoView({ behavior: 'smooth' });
+            // 滚动到第三页 (假设 third-page ID 存在)
+            const thirdPage = document.getElementById('third-page');
+            if (thirdPage) {
+                 thirdPage.scrollIntoView({ behavior: 'smooth' });
+            }
             return;
         }
 
-        // --- 更新：显示加载状态并重置进度条 --- 
+        // 显示加载状态并重置进度条
         const progressBar = document.querySelector('.progress-bar');
         const progressText = document.querySelector('.progress-text');
         const errorCountEl = document.querySelector('.error-count');
         
-        imageLoading.classList.add('active');
+        if (imageLoading) imageLoading.classList.add('active');
+        if (generatedImage) {
         generatedImage.classList.remove('active');
         generatedImage.innerHTML = ''; // 清空之前的内容
+        }
         if(progressBar) progressBar.style.width = '0%';
         if(progressText) progressText.textContent = '正在提交生成任务...';
         if(errorCountEl) errorCountEl.textContent = ''; // 清空错误计数
-        // --- 结束更新 --- 
 
         // 构建基于梦境内容和分析结果的 prompt
-        const emotionKeywords = extractEmotionKeywords(dreamAnalysisResult?.emotion_analysis); // Use optional chaining
+        const emotionKeywords = extractEmotionKeywords(dreamAnalysisResult?.emotion_analysis || dreamAnalysisResult?.emotion_summary); // 尝试兼容旧字段
 
-        // --- 再次修改 Prompt 结构 --- 
-        // 结构：[原始梦境文本]。 视觉风格提示：梦幻，超现实。 情绪基调：[提取的情绪关键词]。
         const mjPrompt = `${currentDreamText}. Visual style: dreamy, surreal. Emotional tone: ${emotionKeywords}. --ar 1:1 --v 6.0`;
-        // 移除了 themeKeywords 和笼统的 "Dreamlike atmosphere, magical surreal world"
-        // --- 结束 Prompt 修改 ---
-        
         console.log("Revised Midjourney Prompt:", mjPrompt);
         
         try {
-            // --- 修改：提交 /imagine 请求 --- 
+            // 提交 /imagine 请求
             const imagineApiUrl = `${MIDJOURNEY_API_URL}/mj/submit/imagine`;
-            const imagineRequestData = { prompt: mjPrompt }; // 不再需要 grid: false
+            const imagineRequestData = { prompt: mjPrompt };
             
             console.log("发送 Imagine 请求数据:", JSON.stringify(imagineRequestData));
             console.log("请求 Imagine URL:", imagineApiUrl);
@@ -883,23 +1234,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imagineResult.code === 1 && imagineResult.result) {
                 const imagineTaskId = imagineResult.result;
                 console.log("Imagine 任务提交成功，任务 ID:", imagineTaskId);
-                // --- 修改：开始自动轮询 Imagine 任务 --- 
-                updateProgressUI('正在生成图片网格 (0%)...', 0);
+                // 修改：调用增强的 updateProgressUI
+                updateProgressUI('SUBMITTED', '任务已提交，等待生成...', 0, 'imagine');
                 pollImagineTask(imagineTaskId); 
             } else {
                 throw new Error(`Imagine API 错误: ${imagineResult.description || '未知错误'}`);
             }
-            // --- 结束修改 --- 
             
         } catch (error) {
             console.error('提交 Imagine 任务时出错:', error);
-            imageLoading.classList.remove('active');
+            if (imageLoading) imageLoading.classList.remove('active');
+            if (generatedImage) {
             generatedImage.innerHTML = `<div class="error-message">图像生成任务提交失败: ${error.message}</div>`;
             generatedImage.classList.add('active');
+            }
         }
     }
 
-    // --- 新增：轮询 Imagine 任务状态 --- 
+    // 轮询 Imagine 任务状态
     async function pollImagineTask(taskId, attempt = 1) {
         const maxAttempts = 30; // 最多轮询 30 次 (约 2.5 分钟)
         const interval = 5000; // 每 5 秒轮询一次
@@ -907,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (attempt > maxAttempts) {
             console.error("Imagine 任务轮询超时:", taskId);
             displayError("生成图片网格超时，请稍后重试。", taskId);
-            clearInterval(imaginePollingInterval); // 确保清除定时器
+            clearInterval(imaginePollingInterval);
             return;
         }
 
@@ -923,7 +1275,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const responseText = await response.text();
                 
                 if (!response.ok) {
-                     // 如果遇到404或其他错误，可能任务还没准备好，稍后重试
                     console.warn(`轮询 Imagine 任务 ${taskId} 遇到错误 ${response.status}，将重试`);
                     pollImagineTask(taskId, attempt + 1); 
                     return;
@@ -934,72 +1285,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     result = JSON.parse(responseText);
                 } catch (e) {
                     console.error("解析 Imagine 轮询结果 JSON 失败:", responseText);
-                    pollImagineTask(taskId, attempt + 1); // 解析失败也重试
+                    pollImagineTask(taskId, attempt + 1);
                     return;
                 }
 
                 console.log("Imagine 轮询结果:", result);
 
                 const progress = result.progress ? parseInt(result.progress.replace('%', '')) : 0;
-                const estimatedTotalTime = 75; // 假设 Imagine 平均需要 75 秒
-                const remainingTime = Math.max(0, Math.round(estimatedTotalTime * (1 - progress / 100)));
-                updateProgressUI(`正在生成图片网格 (${result.progress || '0%'})... 预计剩余 ${remainingTime} 秒`, progress);
+                // 修改：调用增强的 updateProgressUI，传递状态信息
+                updateProgressUI(result.status, result.description, result.progress, 'imagine');
 
                 if (result.status === "SUCCESS") {
                     console.log("Imagine 任务成功:", taskId);
-                    // --- 修改：提取 U1 的 customId --- 
                     let u1CustomId = null;
-                    // 尝试从常见的字段中查找 customId，您可能需要根据 API 的实际返回调整
                     if (result.buttons && Array.isArray(result.buttons) && result.buttons.length > 0 && result.buttons[0].customId) {
-                        // 假设 U1 是第一个按钮
                         u1CustomId = result.buttons[0].customId;
                         console.log("从 result.buttons[0].customId 提取到 U1 customId:", u1CustomId);
                     } else if (result.actions && Array.isArray(result.actions)) {
-                        // 或者在 actions 数组中查找 label 为 U1 或类似的
                         const u1Action = result.actions.find(action => action.label === 'U1');
                         if (u1Action && u1Action.customId) {
                             u1CustomId = u1Action.customId;
                             console.log("从 result.actions 中提取到 U1 customId:", u1CustomId);
                         }
-                    } // 可以根据需要添加更多查找逻辑
+                    }
                     
                     if (u1CustomId) {
-                        updateProgressUI('图片网格生成完毕，准备放大...', 100);
-                        // --- 修改：传递 customId 给 submitUpscaleTask ---
+                        updateProgressUI('正在生成图片网格 (0%)...', 0);
                         submitUpscaleTask(taskId, u1CustomId); 
                     } else {
                          console.error("Imagine 成功结果中未找到 U1 的 customId:", result);
                          displayError("无法获取放大图片所需的操作ID。", taskId, JSON.stringify(result));
                     }
-                    // --- 结束修改 ---
                 } else if (result.status === "FAILURE") {
                     console.error("Imagine 任务失败:", result.failReason);
                     displayError(`生成图片网格失败: ${result.failReason || '未知原因'}`, taskId);
                 } else if (result.status === "IN_PROGRESS" || result.status === "SUBMITTED") {
-                    // 继续轮询
                     pollImagineTask(taskId, attempt + 1);
                 } else {
                      console.warn("未知的 Imagine 任务状态:", result.status);
-                     pollImagineTask(taskId, attempt + 1); // 未知状态也继续尝试
+                     pollImagineTask(taskId, attempt + 1);
                 }
             } catch (error) {
                 console.error('轮询 Imagine 任务时出错:', error);
-                // 网络错误等也重试
                 pollImagineTask(taskId, attempt + 1);
             }
         }, interval);
     }
 
-    // --- 新增：提交 Upscale 任务 --- 
-    // --- 修改：参数改为 taskId 和 customId ---
+    // 提交 Upscale 任务
     async function submitUpscaleTask(originalImagineTaskId, customId) { 
         console.log("准备提交 Upscale U1 任务, originalImagineTaskId:", originalImagineTaskId, "customId:", customId);
         try {
             const upscaleApiUrl = `${MIDJOURNEY_API_URL}/mj/submit/action`; 
             const upscaleRequestData = {
-                customId: customId, // --- 修改：使用 customId --- 
-                taskId: originalImagineTaskId // 保留 taskId 以防万一
-                // 不再需要 action, index, messageId, messageHash，因为 customId 通常包含了这些信息
+                customId: customId,
+                taskId: originalImagineTaskId
             };
 
             console.log("发送 Upscale 请求数据:", JSON.stringify(upscaleRequestData));
@@ -1030,7 +1370,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (upscaleResult.code === 1 && upscaleResult.result) {
                 const upscaleTaskId = upscaleResult.result;
                 console.log("Upscale 任务提交成功，任务 ID:", upscaleTaskId);
-                updateProgressUI('正在放大图片 (0%)...', 0);
+                // 修改：调用增强的 updateProgressUI
+                updateProgressUI('SUBMITTED', '任务已提交，等待放大...', 0, 'upscale');
                 pollUpscaleTask(upscaleTaskId);
             } else {
                 throw new Error(`Upscale API 错误: ${upscaleResult.description || '未知错误'}`);
@@ -1042,18 +1383,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 新增：轮询 Upscale 任务状态 --- 
+    // 轮询 Upscale 任务状态
     async function pollUpscaleTask(taskId, attempt = 1) {
         const maxAttempts = 24; // 最多轮询 24 次 (约 2 分钟)
         const interval = 5000; // 每 5 秒轮询一次
         
-        // 清除 Imagine 轮询（如果还在运行）
         clearInterval(imaginePollingInterval);
 
         if (attempt > maxAttempts) {
             console.error("Upscale 任务轮询超时:", taskId);
             displayError("放大图片超时，请稍后重试。", taskId);
-             clearInterval(upscalePollingInterval); // 确保清除定时器
+             clearInterval(upscalePollingInterval);
             return;
         }
 
@@ -1086,12 +1426,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Upscale 轮询结果:", result);
 
                 const progress = result.progress ? parseInt(result.progress.replace('%', '')) : 0;
-                const estimatedTotalTime = 45; // 假设 Upscale 平均需要 45 秒
-                const remainingTime = Math.max(0, Math.round(estimatedTotalTime * (1 - progress / 100)));
-                updateProgressUI(`正在放大图片 (${result.progress || '0%'})... 预计剩余 ${remainingTime} 秒`, progress);
+                 // 修改：调用增强的 updateProgressUI，传递状态信息
+                 updateProgressUI(result.status, result.description, result.progress, 'upscale');
 
                 if (result.status === "SUCCESS") {
-                    console.log("Upscale 任务成功，完整结果:", JSON.stringify(result, null, 2)); // 详细打印成功结果
+                     console.log("Upscale 任务成功，完整结果:", JSON.stringify(result, null, 2));
                     if (result.imageUrl) {
             handleSuccess(result.imageUrl);
                     } else {
@@ -1114,74 +1453,118 @@ document.addEventListener('DOMContentLoaded', () => {
         }, interval);
     }
     
-    // --- 修改：移除手动检查逻辑 --- 
-    // async function checkTaskResult(taskId) { ... } 
-    
-    // --- 新增：统一更新进度UI --- 
-    function updateProgressUI(text, percentage) {
+    // 统一更新进度UI (增强版)
+    function updateProgressUI(status, description, progress, phase) {
          const progressBar = document.querySelector('.progress-bar');
          const progressText = document.querySelector('.progress-text');
-         if (progressText) progressText.textContent = text;
-         if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (!progressText || !progressBar) return;
+
+        let text = '';
+        let percentage = progress ? parseInt(String(progress).replace('%', '')) : 0;
+
+        // 默认总时间 (秒)
+        const totalTimeImagine = 75;
+        const totalTimeUpscale = 45;
+        let estimatedTotalTime = (phase === 'imagine') ? totalTimeImagine : totalTimeUpscale;
+
+        // 根据状态决定显示文本
+        switch (status) {
+            case 'SUBMITTED':
+            case 'NOT_START':
+                text = description || (phase === 'imagine' ? '任务已提交，等待生成...' : '任务已提交，等待放大...');
+                if (description && description.includes('排队')) {
+                    text = `排队中... (${description})`; // 显示排队信息
+                }
+                percentage = 0; // 排队或未开始时进度为0
+                break;
+            case 'IN_PROGRESS':
+                const remainingTime = Math.max(0, Math.round(estimatedTotalTime * (1 - percentage / 100)));
+                text = phase === 'imagine'
+                    ? `正在生成图片网格 (${percentage}%)... 预计剩余 ${remainingTime} 秒`
+                    : `正在放大图片 (${percentage}%)... 预计剩余 ${remainingTime} 秒`;
+                break;
+            case 'FAILURE':
+                text = `任务失败: ${description || '未知原因'}`;
+                percentage = 0; // 失败时重置进度条
+                break;
+            case 'SUCCESS':
+                text = phase === 'imagine' ? '图片网格生成完毕' : '图片放大成功！';
+                percentage = 100;
+                break;
+            default:
+                // 处理未知状态或仅有描述的情况
+                text = description ? `状态: ${status} (${description})` : `处理中 (${status})...`;
+                // 如果有进度，还是显示进度
+                if (progress) {
+                     const remainingTimeDefault = Math.max(0, Math.round(estimatedTotalTime * (1 - percentage / 100)));
+                     text += ` (${percentage}%) 预计剩余 ${remainingTimeDefault} 秒`;
+                } else {
+                    percentage = 0; // 未知状态无进度则为0
+                }
+        }
+
+        progressText.textContent = text;
+        progressBar.style.width = `${percentage}%`;
     }
     
     // --- 新增：统一显示错误信息 --- 
     function displayError(message, taskId = null, rawResponse = null) {
-        clearInterval(imaginePollingInterval); // 停止所有轮询
+        clearInterval(imaginePollingInterval);
         clearInterval(upscalePollingInterval);
         
-        imageLoading.classList.remove('active');
+        if(imageLoading) imageLoading.classList.remove('active');
         let errorHtml = `<div class="error-message">${message}`;
         if (taskId) {
-            errorHtml += `<br><button onclick="retryTask('${taskId}')" class="check-task-btn">重试任务</button>`; // 添加重试按钮
+            // 添加重试按钮 (需要全局暴露 retryTask)
+             errorHtml += `<br><button onclick="window.retryTask('${taskId}')" class="check-task-btn">重试任务</button>`;
         }
         if (rawResponse) {
-             errorHtml += `<button onclick="showDebugInfo('${taskId}', '${btoa(rawResponse)}')" class="check-task-btn debug-btn">调试信息</button>`; // 添加调试按钮
+            // 添加调试按钮 (需要全局暴露 showDebugInfo)
+             errorHtml += `<button onclick="window.showDebugInfo('${taskId}', '${btoa(unescape(encodeURIComponent(rawResponse)))}')" class="check-task-btn debug-btn">调试信息</button>`;
         }
          errorHtml += `</div>`;
+         if (generatedImage) {
         generatedImage.innerHTML = errorHtml;
         generatedImage.classList.add('active');
+         }
     }
     
-    // --- 新增：重试任务函数 (暴露到全局供按钮调用) --- 
+    // 暴露重试和调试函数到全局作用域
     window.retryTask = function(taskId) {
         console.log("尝试重试任务:", taskId);
-        // 简单的处理：假设重试按钮总是针对最后失败的 Upscale 任务
-        // 更完善的方案需要存储任务类型或从 taskId 解析
          updateProgressUI('正在重试任务...', 0);
-         imageLoading.classList.add('active');
-         generatedImage.classList.remove('active');
-         pollUpscaleTask(taskId); // 简化处理，直接重试 Upscale 轮询
+        if (imageLoading) imageLoading.classList.add('active');
+        if (generatedImage) generatedImage.classList.remove('active');
+        pollUpscaleTask(taskId); // 简化处理，直接重试 Upscale
     }
-    
-     // --- 新增：显示调试信息函数 (暴露到全局供按钮调用) --- 
      window.showDebugInfo = function(taskId, base64Response) {
          try {
-             const decodedResponse = atob(base64Response);
+            const decodedResponse = decodeURIComponent(escape(atob(base64Response)));
              alert(`任务ID: ${taskId}\n原始响应: ${decodedResponse}`);
          } catch (e) {
               alert(`任务ID: ${taskId}\n无法解码响应内容。`);
          }
      }
 
-    // 封装图片加载成功逻辑 (基本不变，由 pollUpscaleTask 调用)
+    // 图片加载成功逻辑
 function handleSuccess(originalUrl) {
-        console.log("handleSuccess 接收到 originalUrl:", originalUrl); // 打印原始 URL
+        console.log("handleSuccess 接收到 originalUrl:", originalUrl);
         clearInterval(imaginePollingInterval);
         clearInterval(upscalePollingInterval);
-        imageLoading.classList.remove('active');
+        if (imageLoading) imageLoading.classList.remove('active');
         
-        const proxyUrl = originalUrl.replace('https://cdn.discordapp.com/', 'https://mjcdn.znrpa.com/'); // 假设代理仍然需要
-        console.log("处理后的 proxyUrl:", proxyUrl); // 打印代理 URL
+        const proxyUrl = originalUrl.replace('https://cdn.discordapp.com/', 'https://mjcdn.znrpa.com/');
+        console.log("处理后的 proxyUrl:", proxyUrl);
         
     const imgElement = createImageElement(proxyUrl, originalUrl);
+        if (generatedImage) {
     generatedImage.innerHTML = '';
     generatedImage.appendChild(imgElement);
-        
         // 添加"身临其境地入梦吧"按钮
         const immersiveBtn = document.createElement('button');
         immersiveBtn.className = 'immersive-btn';
         immersiveBtn.textContent = '身临其境地入梦吧';
+            // ... (按钮样式和事件监听器)
         immersiveBtn.style.position = 'absolute';
         immersiveBtn.style.bottom = '20px';
         immersiveBtn.style.left = '50%';
@@ -1201,19 +1584,16 @@ function handleSuccess(originalUrl) {
             this.style.backgroundColor = '#ff6699';
             this.style.transform = 'translateX(-50%) scale(1.05)';
         });
-
         immersiveBtn.addEventListener('mouseout', function() {
             this.style.backgroundColor = '#ff4081';
             this.style.transform = 'translateX(-50%)';
         });
-
         immersiveBtn.addEventListener('click', function() {
-            // 直接使用存储的 currentDreamNature
             console.log("[按钮点击] 读取存储的梦境性质:", currentDreamNature);
             let videoFileName = '';
             if (currentDreamNature === 'good') {
                 videoFileName = 'good_h264.mp4';
-            } else { // 默认为 bad 或明确为 bad
+                } else {
                 const badVideos = ['bad1_h264.mp4', 'bad2_h264.mp4', 'bad3_h264.mp4'];
                 const randomIndex = Math.floor(Math.random() * badVideos.length);
                 videoFileName = badVideos[randomIndex];
@@ -1224,59 +1604,36 @@ function handleSuccess(originalUrl) {
 
         generatedImage.appendChild(immersiveBtn);
         generatedImage.classList.add('active'); 
+        }
     }
 
-// 封装图片元素创建逻辑
+    // 创建图片元素
 function createImageElement(proxyUrl, originalUrl) {
     const imgElement = document.createElement('img');
     imgElement.alt = "AI 生成的梦境图像";
-        // 优先尝试加载代理 URL
         imgElement.src = proxyUrl; 
 
     imgElement.onload = () => {
             console.log("图片加载成功:", imgElement.src); 
-            // 成功加载后不需要做额外操作，因为已添加到 DOM
         };
 
         imgElement.onerror = (event) => {
-            // 代理 URL 加载失败
             console.error("图片加载失败 (代理 URL):", proxyUrl, "错误事件:", event);
-            // 尝试加载原始 URL
             console.log("尝试加载原始 URL:", originalUrl);
             imgElement.src = originalUrl;
             imgElement.onerror = (event2) => {
-                // 原始 URL 也加载失败
                 console.error("图片加载失败 (原始 URL):", originalUrl, "错误事件:", event2);
-        generatedImage.innerHTML = `
-            <div class="error-message">
-                图片加载失败<br>
-                        请检查网络连接或稍后再试。<br>
-                        <span style="font-size: 12px;">代理链接 (尝试过): <a href="${proxyUrl}" target="_blank">${proxyUrl}</a></span><br>
-                        <span style="font-size: 12px;">原始链接 (尝试过): <a href="${originalUrl}" target="_blank">${originalUrl}</a></span>
-            </div>
-        `;
-                generatedImage.classList.add('active'); // 确保错误消息可见
+                    if(generatedImage) {
+                        generatedImage.innerHTML = `... [错误信息 HTML] ...`;
+                        generatedImage.classList.add('active');
+                    }
             };
     };
-
     return imgElement;
 }
 
-    // ... (analyzeDreamAndRedirect, redirectTo360Video, handleProgress, createImageElement, extractEmotionKeywords, extractThemeKeywords 等函数保持不变) ...
-    // --- 修改：移除 handleProgress 中的手动按钮添加逻辑 --- 
-    function handleProgress(taskId, progress) { // taskId 可能不再需要，因为现在是自动轮询
-        const estimatedTotalTimeImagine = 75; // 假设 Imagine 平均需要 75 秒
-        const estimatedTotalTimeUpscale = 45; // 假设 Upscale 平均需要 45 秒
-        // 需要判断当前是哪个阶段来选择总时间，或者只显示百分比
-        updateProgressUI(`图片生成中 (${progress}%)...`, progress);
-        // 不再添加 "再次检查" 按钮
-    }
-    
-    // ... (其他代码保持不变) ...
-
-    // --- 修改：优化情绪关键词提取 ---
+    // 提取情绪关键词
     function extractEmotionKeywords(emotionText) {
-        // 尝试加入更视觉化的词语
         const emotionMap = {
             '焦虑': 'anxiety, tension, worried, dark shadows', 
             '孤独': 'loneliness, isolation, solitude, empty space', 
@@ -1287,136 +1644,82 @@ function createImageElement(proxyUrl, originalUrl) {
             '平静': 'calm, serenity, peaceful, soft light, gentle breeze', 
             '愤怒': 'anger, rage, fury, storm clouds, intense red' 
         };
-        
         let keywords = [];
-        if (emotionText && typeof emotionText === 'string') { // 增加检查
+        if (emotionText && typeof emotionText === 'string') {
         for (const [emotion, words] of Object.entries(emotionMap)) {
             if (emotionText.includes(emotion)) {
                 keywords.push(words);
             }
         }
         }
-        
-        // 如果没有匹配到，返回通用描述
         return keywords.length > 0 ? keywords.join(', ') : 'dreamlike, emotional atmosphere';
     }
     
-    // --- 修改：移除 themeKeywords 的提取，因为它之前直接返回全文 --- 
-    // function extractThemeKeywords(themeText) {
-    //     return themeText; 
-    // }
-
-    // 监听 .sec_page 下的动画元素
-    const secPage = document.querySelector('.sec_page');
-    if (secPage) {
-        const animatedEls = secPage.querySelectorAll('.sec-slogan, .sec-title, .sec-txt, .sec-hudie, .sec-img');
-        animatedEls.forEach(el => {
-            el.classList.add('scroll-animate'); // 初始隐藏
-            observer.observe(el);
-        });
-    }
-
-    // 绑定搜索按钮点击事件
-    if (searchButton) {
-        searchButton.addEventListener('click', () => {
-            const dreamText = dreamInput.value.trim();
-            if (dreamText) {
-                fetchDreamAnalysis(dreamText);
-            } else {
-                // Maybe provide feedback if input is empty?
-                alert('请输入你的梦境内容。');
-            }
-        });
-    }
-
-    // 允许在输入框中按 Enter 键触发搜索
-    if (dreamInput) {
-        dreamInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // 防止可能的表单提交
-                searchButton.click(); // 触发按钮点击
-            }
-        });
-    }
-    
-    // 绑定"可视梦境"按钮点击事件
-    if (visualDreamBtn) {
-        visualDreamBtn.addEventListener('click', () => {
-            generateDreamImage();
-        });
-    }
-
-    // --- 第二页滑动提示在鼠标滑过时消失 ---
-    const newSecondPage = document.getElementById('new-second-page');
-    const scrollPrompt = document.querySelector('.scroll-prompt');
-
-    if (newSecondPage && scrollPrompt) {
-        newSecondPage.addEventListener('mouseenter', () => {
-            scrollPrompt.style.opacity = '0'; // 隐藏滑动提示
-        });
-
-        newSecondPage.addEventListener('mouseleave', () => {
-            scrollPrompt.style.opacity = '1'; // 显示滑动提示
-        });
-    }
-
-    // --- 小游戏入口处理 ---
-    const game1Entry = document.getElementById('game1-entry');
-    const game2Entry = document.getElementById('game2-entry');
-    const game3Entry = document.getElementById('game3-entry');
-
-    // 游戏1入口点击事件
-    if (game1Entry) {
-        game1Entry.addEventListener('click', () => {
-            console.log("跳转到游戏1：小女孩的房间");
-            window.location.href = 'game1.html';
-        });
-        // 添加鼠标悬停效果
-        game1Entry.addEventListener('mouseenter', () => {
-            game1Entry.style.transform = 'scale(1.1)';
-        });
-        game1Entry.addEventListener('mouseleave', () => {
-            game1Entry.style.transform = 'scale(1)';
-        });
-    }
-
-    // 游戏2入口点击事件 (预留)
-    if (game2Entry) {
-        game2Entry.addEventListener('click', () => {
-            console.log("跳转到游戏2：樱花的世界");
-            window.location.href = 'game2.html';
-        });
-        // 添加鼠标悬停效果
-        game2Entry.addEventListener('mouseenter', () => {
-            game2Entry.style.transform = 'scale(1.1)';
-        });
-        game2Entry.addEventListener('mouseleave', () => {
-            game2Entry.style.transform = 'scale(1)';
-        });
-    }
-
-    // 游戏3入口点击事件 (预留)
-    if (game3Entry) {
-        game3Entry.addEventListener('click', () => {
-            console.log("跳转到游戏3：糖果的天地");
-            window.location.href = 'game3.html';
-        });
-        // 添加鼠标悬停效果
-        game3Entry.addEventListener('mouseenter', () => {
-            game3Entry.style.transform = 'scale(1.1)';
-        });
-        game3Entry.addEventListener('mouseleave', () => {
-            game3Entry.style.transform = 'scale(1)';
-        });
-    }
-
-    // --- 新增/恢复：跳转到360°视频 --- 
+    // 跳转到360视频 (确保此函数存在)
     function redirectTo360Video(videoFileName) {
+        // 假设已存在或在此处定义
         const targetUrl = `http://localhost:8080/360video.html?video=${encodeURIComponent(videoFileName)}`;
         console.log("准备跳转到:", targetUrl);
         window.location.href = targetUrl;
     }
-});
+
+    // 绑定"可视梦境"按钮点击事件 (确保 visualDreamBtn 变量已在某处声明)
+    const existingVisualDreamBtn = document.querySelector('.visual-dream-btn'); // 再次获取，确保存在
+    if (existingVisualDreamBtn) {
+        // 检查是否已有点击监听器，避免重复添加 (简单检查)
+        if (!existingVisualDreamBtn.hasAttribute('data-mj-listener-added')) {
+            existingVisualDreamBtn.addEventListener('click', () => {
+                generateDreamImage(); // 点击按钮时调用生成函数
+            });
+            existingVisualDreamBtn.setAttribute('data-mj-listener-added', 'true'); // 标记已添加
+            console.log('Midjourney listener added to visualDreamBtn.');
+        } else {
+             console.log('Midjourney listener already exists on visualDreamBtn.');
+        }
+    } else {
+        console.error('Visual dream button (.visual-dream-btn) not found when trying to add Midjourney listener.');
+            }
+
+    // --- Midjourney API 相关代码结束 ---
+
+    // 修改后的透明度变化逻辑
+    function updatePageOpacity(direction) {
+        if (direction === 'forward') {
+            // 重置当前页的透明度
+            setTimeout(() => {
+                if (currentPage >= 0) {
+                    const currentPageEl = pages[currentPage];
+                    const nextPage = pages[currentPage + 1];
+                    const nextBack = nextPage.querySelector('.page-back');
+                    if (nextBack) {
+                        nextBack.style.opacity = '1';
+                    }
+                }
+                // 递归调用以保持透明度变化
+                if (currentPage < pages.length - 1) {
+                    updatePageOpacity('forward');
+                }
+            }, 1000);
+        } else if (direction === 'backward') {
+            // 重置前一页的透明度，为返回时做准备
+            setTimeout(() => {
+                if (currentPage > 0) {
+                    const prevPage = pages[currentPage - 1];
+                    const prevFront = prevPage.querySelector('.page-front');
+                    if (prevFront) {
+                        prevFront.style.opacity = '0';
+                    }
+                }
+                // 递归调用以保持透明度变化
+                if (currentPage > 0) {
+                    updatePageOpacity('backward');
+                }
+            }, 1000);
+        }
+    }
+
+}); // End of DOMContentLoaded listener
+
 // 页面滚动动画：每个 .page 进入视口时添加 in-view 类，离开时移除
 (function(){
   const pages = document.querySelectorAll('.page');
@@ -1441,3 +1744,4 @@ window.onload = function() {
         console.error("播放音乐失败:", error);
     });
 };
+

@@ -440,6 +440,14 @@ main {
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* 添加过渡效果 */
+    cursor: pointer; /* 添加指针手势 */
+}
+
+/* 卡片悬停效果 */
+.result-card:hover {
+    transform: scale(1.03); /* 轻微放大 */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 增加阴影 */
 }
 
 .result-card h3 {
