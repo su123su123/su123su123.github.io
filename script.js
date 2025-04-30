@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEEPSEEK_API_KEY = 'sk-db09379b2da749ac80747244ba3e127c'; // 请替换为您的 API Key
     const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'; // DeepSeek API URL
     
-    const MIDJOURNEY_API_KEY = 'sk-SzQWup7igqysKa0h796664F0D978409eAf34225b82050940'; // Midjourney API 密钥
+    const MIDJOURNEY_API_KEY = 'sk-DMMaqcJ09MJKf9F34e95Fe0e853c438993F539Fc1eEeB840'; // Midjourney API 密钥
     const MIDJOURNEY_API_URL = 'https://api.aiyiapi.com/mj-relax'; // 不包含模式后缀
     
     // --- State Variables ---

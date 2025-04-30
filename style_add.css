@@ -755,7 +755,9 @@ main {
 .fade-out {
     opacity: 0 !important; /* 强制覆盖，确保消失 */
 }
-
+.sec-img {
+    /* 只保留布局、尺寸等，不设置 opacity、transform、transition */
+}
 /* 定义轻微弹动动画 */
 @keyframes bounce-subtle {
     0%, 100% {
